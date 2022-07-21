@@ -1,4 +1,4 @@
-use crate::graph::structure::{Graph};
+/*use crate::graph::structure::{Graph};
 use std::convert::From;
 use std::cmp::max;
 
@@ -81,4 +81,4 @@ impl From<Vec<(usize, usize)>> for SimpleGraph<(), ()> {
             edges_len: edges.len(),
         }
     }
-}
+}*/

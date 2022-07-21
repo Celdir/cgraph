@@ -1,44 +1,41 @@
+#[derive(PartialEq)]
 pub enum Direction {
-    Directed,
+    In,
+    Out,
     Undirected,
 }
 
-pub struct Edge<'a, NodeId, EdgeId, E> {
+pub struct Edge<NodeId, EdgeId, E> {
     id: EdgeId,
     origin: NodeId,
     destination: NodeId,
-    data: &'a E,
-    direction: Direction,
+    data: E,
 }
 
-impl<'a, NodeId, EdgeId, E> Edge<'a, NodeId, EdgeId, E> {
-    fn id(&self) -> EdgeId {
-        self.id
+impl<NodeId: Copy, EdgeId: Copy, E> Edge<NodeId, EdgeId, E> {
+    pub fn new(id: EdgeId, origin: NodeId, destination: NodeId, data: E) -> Edge<NodeId, EdgeId, E> {
+        Edge { id, origin, destination, data }
     }
 
-    fn origin(&self) -> NodeId {
-        self.origin
+    pub fn id(&self) -> &EdgeId {
+        &self.id
     }
 
-    fn destination(&self) -> NodeId {
-        self.destination
+    pub fn origin(&self) -> &NodeId {
+        &self.origin
     }
 
-    fn data(&self) -> &'a E {
+    pub fn destination(&self) -> &NodeId {
+        &self.destination
+    }
+
+    pub fn data(&self) -> &E {
+        &self.data
+    }
+
+    pub fn into(self) -> E {
         self.data
     }
-
-    fn direction(&self) -> Direction {
-        self.direction
-    }
-
-    fn is_directed(&self) -> bool {
-        self.direction == Direction::Directed
-    }
-
-    fn is_undirected(&self) -> bool {
-        self.direction == Direction::Undirected
-    }
 }
 
-pub type Edge<'a, NodeId, E> = Edge<'a, NodeId, (NodeId, NodeId), E>;
+pub type UniqueEdge<NodeId, E> = Edge<NodeId, (NodeId, NodeId), E>;

@@ -1,4 +1,4 @@
-use crate::graph::structure::{Graph};
+/*use crate::graph::structure::{Graph};
 use std::collections::{HashMap, VecDeque};
 
 pub struct Bfs<'a, G: Graph<'a>> {
@@ -88,4 +88,4 @@ mod tests {
         let bfs: Vec<_> = graph.bfs_from(0).map(|i| i.0).collect();
         assert_eq!(&expected_order, &bfs);
     }
-}
+}*/

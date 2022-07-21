@@ -4,3 +4,13 @@
 - Wrap return values in structs that implement iterators over whatever types we want (e.g. Edges struct that allows you to iterate over (u, v, w))
 - Wrap edges in Edge struct that stores ingoing/outgoing, direct/undirected, u, v, etc
 - Split Graph trait into multiple traits depending on implementation. Core things like iteration and getters should be in the Graph trait but mutation (insert/delete/update) and maybe initialization (maybe shouldn't be in a trait at all) should be handled in other traits. For example, graphs that allow users to specify a node index might have `fn insert_node(idx, node)` but other graphs might have `fn insert_node(node) -> idx`
+
+
+g[u][v] - get edge(s) between u and v
+g[u] - get adjacent edges to u
+g[u][v] = e - insert edge e between u and v
+g[u].erase(v) - erase edge (u, v)
+
+usize as mandatory node index :)
+edge index is also usize
+make IndexGraph wrapper that stores a separate mapping of whatever index to usize and back and passes through to Graph

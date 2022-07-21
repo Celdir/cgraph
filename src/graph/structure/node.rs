@@ -1,14 +1,18 @@
 pub struct Node<'a, NodeId, N> {
     id: NodeId,
-    data: &'a E,
+    data: &'a N,
 }
 
 impl<'a, NodeId, N> Node<'a, NodeId, N> {
-    fn id(&self) -> NodeId {
-        self.id
+    pub fn new(id: NodeId, data: &'a N) -> Node<'a, NodeId, N> {
+        Node{ id, data }
+    }
+
+    pub fn id(&self) -> &NodeId {
+        &self.id
     }
     
-    fn data(&self) -> &'a N {
+    pub fn data(&self) -> &'a N {
         self.data
     }
 }
