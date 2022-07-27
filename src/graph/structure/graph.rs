@@ -231,6 +231,10 @@ impl<N, E> VecGraph<N, E> {
             .map(|(id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
     }
 
+    fn contains_edge(&self, u: usize, v: usize) -> bool {
+        self.out_adj.get(u).is_some() && self.out_adj[u].contains_key(&v)
+    }
+
     fn between(&self, u: usize, v: usize) -> Option<Edge<usize, usize, E>> {
         let &edge_id = self.out_adj.get(u)?.get(&v)?;
         match self.edges.get(edge_id) {
@@ -239,9 +243,21 @@ impl<N, E> VecGraph<N, E> {
         }
     }
 
+    fn between_multi(&self, u: usize, v: usize) -> Option<impl Iterator<Item = Edge<usize, usize, E>>> {
+        let &edge_id = self.out_adj.get(u)?.get(&v)?;
+        match self.edges.get(edge_id) {
+            Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),
+            _ => None,
+        }
+    }
+
     // Returns out edges for directed graph or all edges for undirected
     fn adj(&self, u: usize) -> Option<AdjIterator<N, E>> {
         self.out_edges(u)
+    }
+
+    fn degree(&self, u: usize) -> usize {
+        self.in_degree(u) + self.out_degree(u)
     }
 
     fn out_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
@@ -253,6 +269,10 @@ impl<N, E> VecGraph<N, E> {
         })
     }
 
+    fn out_degree(&self, u: usize) -> usize {
+        self.out_adj.get(u).map_or(0, |adj_map| adj_map.len())
+    }
+
     fn in_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
             u,
@@ -260,6 +280,10 @@ impl<N, E> VecGraph<N, E> {
             edges: &self.edges,
             iter: self.in_adj.get(u)?.iter(),
         })
+    }
+
+    fn in_degree(&self, u: usize) -> usize {
+        self.in_adj.get(u).map_or(0, |adj_map| adj_map.len())
     }
 }
 
@@ -273,7 +297,7 @@ impl<N, E> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
         }
 
         for (u, v, e) in edges {
-            graph.insert_edge(u, v, e);
+            graph.insert_edge(u, v, e).expect(format!("{} -> {} is not a valid edge: no such node ids.", u, v).as_str());
         }
 
         graph
