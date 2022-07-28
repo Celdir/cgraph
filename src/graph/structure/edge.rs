@@ -17,27 +17,27 @@ impl<'a, NodeId: Copy, EdgeId: Copy, E> Edge<'a, NodeId, EdgeId, E> {
         Edge { id, origin, destination, data }
     }
 
-    fn id(&self) -> EdgeId {
+    pub fn id(&self) -> EdgeId {
         self.id
     }
 
-    fn origin(&self) -> NodeId {
+    pub fn origin(&self) -> NodeId {
         self.origin
     }
     
-    fn u(&self) -> NodeId {
+    pub fn u(&self) -> NodeId {
         self.origin
     }
 
-    fn destination(&self) -> NodeId {
+    pub fn destination(&self) -> NodeId {
         self.destination
     }
 
-    fn v(&self) -> NodeId {
+    pub fn v(&self) -> NodeId {
         self.destination
     }
 
-    fn data(&self) -> &'a E {
+    pub fn data(&self) -> &'a E {
         &self.data
     }
 }

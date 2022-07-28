@@ -1,5 +1,9 @@
 mod graph;
 //pub use self::graph::Graph;
+//
+mod vecgraph;
+
+mod mapgraph;
 
 pub mod edge_traits;
 
