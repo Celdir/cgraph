@@ -72,7 +72,7 @@ pub trait MultiGraph<'a> {
     fn between_multi(&self, u: Self::NId, v: Self::NId) -> Option<Self::EdgeIterator>;
 }
 
-pub trait MapGraph<'a> {
+pub trait KeyedGraph<'a> {
     type N: 'a;
     type NId;
 
