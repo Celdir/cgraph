@@ -1,9 +1,11 @@
 use crate::graph::structure::edge::Edge;
 use crate::graph::structure::node::Node;
-use std::collections::hash_map::Iter;
+use crate::graph::structure::graph::{DirectedGraph, MultiGraph, Graph};
+use std::collections::hash_map;
 use std::collections::HashMap;
 use std::convert::From;
 use std::iter;
+use std::slice;
 use std::ops::Index;
 
 // TODO: implement pooling for re-using deleted node and edge ids
@@ -48,9 +50,24 @@ impl<N, E> VecGraph<N, E> {
             in_adj: Vec::with_capacity(num_nodes),
         }
     }
+}
+
+impl<'a, N: 'a, E: 'a> Graph<'a> for VecGraph<N, E> {
+    type N = N;
+    type NId = usize;
+    type E = E;
+    type EId = usize;
+
+    type NodeIterator = NodeIterator<'a, N>;
+    type EdgeIterator = EdgeIterator<'a, E>;
+    type AdjIterator = AdjIterator<'a, N, E>;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes_len, self.edges_len)
+    }
+
+    fn contains_node(&self, id: usize) -> bool {
+        self.nodes.get(id).is_some() && self.nodes[id].is_some()
     }
 
     fn node(&self, id: usize) -> Option<Node<usize, N>> {
@@ -66,6 +83,10 @@ impl<N, E> VecGraph<N, E> {
 
     fn node_data_mut(&mut self, id: usize) -> Option<&mut N> {
         self.nodes.get_mut(id)?.as_mut()
+    }
+
+    fn degree(&self, u: usize) -> usize {
+        self.in_degree(u) + self.out_degree(u)
     }
 
     fn insert_node(&mut self, node: N) -> usize {
@@ -84,21 +105,33 @@ impl<N, E> VecGraph<N, E> {
         Some(node)
     }
 
-    fn contains_node(&self, id: usize) -> bool {
-        self.nodes.get(id).is_some() && self.nodes[id].is_some()
+    fn clear_node(&mut self, id: usize) -> Option<()> {
+        let edge_ids: Vec<usize> = self
+            .out_edges(id)?
+            .chain(self.in_edges(id)?)
+            .map(|(edge, _)| edge.id())
+            .collect();
+        for id in edge_ids {
+            self.remove_edge(id);
+        }
+        Some(())
     }
 
-    fn nodes(&self) -> impl Iterator<Item = Node<usize, N>> {
-        self.nodes
-            .iter()
-            .enumerate()
-            .filter(|(_, opt)| opt.is_some())
-            .map(|(id, opt)| Node::new(id, opt.as_ref().unwrap()))
+    fn contains_edge(&self, u: usize, v: usize) -> bool {
+        self.out_adj.get(u).is_some() && self.out_adj[u].contains_key(&v)
     }
 
     fn edge(&self, id: usize) -> Option<Edge<usize, usize, E>> {
         match self.edges.get(id) {
             Some(Some(edge)) => Some(Edge::new(id, edge.u, edge.v, &edge.e)),
+            _ => None,
+        }
+    }
+
+    fn between(&self, u: usize, v: usize) -> Option<Edge<usize, usize, E>> {
+        let &edge_id = self.out_adj.get(u)?.get(&v)?;
+        match self.edges.get(edge_id) {
+            Some(Some(edge)) => Some(Edge::new(edge_id, edge.u, edge.v, &edge.e)),
             _ => None,
         }
     }
@@ -132,48 +165,15 @@ impl<N, E> VecGraph<N, E> {
         Some(internal_edge.e)
     }
 
-    fn clear_node(&mut self, id: usize) -> Option<()> {
-        let edge_ids: Vec<usize> = self
-            .out_edges(id)?
-            .chain(self.in_edges(id)?)
-            .map(|(edge, _)| edge.id())
-            .collect();
-        for id in edge_ids {
-            self.remove_edge(id);
-        }
-        Some(())
-    }
-
-    fn edges(&self) -> impl Iterator<Item = Edge<usize, usize, E>> {
-        self.edges
-            .iter()
-            .enumerate()
-            .filter(|(_, opt)| opt.is_some())
-            .map(|(id, opt)| (id, opt.as_ref().unwrap()))
-            .map(|(id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
-    }
-
-    fn contains_edge(&self, u: usize, v: usize) -> bool {
-        self.out_adj.get(u).is_some() && self.out_adj[u].contains_key(&v)
-    }
-
-    fn between(&self, u: usize, v: usize) -> Option<Edge<usize, usize, E>> {
-        let &edge_id = self.out_adj.get(u)?.get(&v)?;
-        match self.edges.get(edge_id) {
-            Some(Some(edge)) => Some(Edge::new(edge_id, edge.u, edge.v, &edge.e)),
-            _ => None,
+    fn nodes(&self) -> NodeIterator<N> {
+        NodeIterator{
+            inner: self.nodes.iter().enumerate()
         }
     }
 
-    fn between_multi(
-        &self,
-        u: usize,
-        v: usize,
-    ) -> Option<impl Iterator<Item = Edge<usize, usize, E>>> {
-        let &edge_id = self.out_adj.get(u)?.get(&v)?;
-        match self.edges.get(edge_id) {
-            Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),
-            _ => None,
+    fn edges(&self) -> EdgeIterator<E> {
+        EdgeIterator {
+            inner: self.edges.iter().enumerate()
         }
     }
 
@@ -181,10 +181,15 @@ impl<N, E> VecGraph<N, E> {
     fn adj(&self, u: usize) -> Option<AdjIterator<N, E>> {
         self.out_edges(u)
     }
+}
 
-    fn degree(&self, u: usize) -> usize {
-        self.in_degree(u) + self.out_degree(u)
-    }
+impl<'a, N: 'a, E: 'a> DirectedGraph<'a> for VecGraph<N, E> {
+    type N = N;
+    type NId = usize;
+    type E = E;
+    type EId = usize;
+
+    type AdjIterator = AdjIterator<'a, N, E>;
 
     fn out_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
@@ -213,6 +218,27 @@ impl<N, E> VecGraph<N, E> {
     }
 }
 
+impl<'a, N: 'a, E: 'a> MultiGraph<'a> for VecGraph<N, E> {
+    type N = N;
+    type NId = usize;
+    type E = E;
+    type EId = usize;
+
+    type EdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
+
+    fn between_multi(
+        &'a self,
+        u: usize,
+        v: usize,
+    ) -> Option<Self::EdgeIterator> {
+        let &edge_id = self.out_adj.get(u)?.get(&v)?;
+        match self.edges.get(edge_id) {
+            Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),
+            _ => None,
+        }
+    }
+}
+
 impl<N, E> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
     fn from(data: (Vec<N>, Vec<(usize, usize, E)>)) -> Self {
         let (nodes, edges) = data;
@@ -232,11 +258,11 @@ impl<N, E> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
     }
 }
 
-struct AdjIterator<'a, N, E> {
+pub struct AdjIterator<'a, N, E> {
     u: usize,
     nodes: &'a Vec<Option<N>>,
     edges: &'a Vec<Option<InternalEdge<E>>>,
-    iter: Iter<'a, usize, usize>,
+    iter: hash_map::Iter<'a, usize, usize>,
 }
 
 impl<'a, N, E> Iterator for AdjIterator<'a, N, E> {
@@ -249,5 +275,41 @@ impl<'a, N, E> Iterator for AdjIterator<'a, N, E> {
             let node = Node::new(v, self.nodes[v].as_ref().unwrap());
             (edge, node)
         })
+    }
+}
+
+pub struct NodeIterator<'a, N> {
+    inner: iter::Enumerate<slice::Iter<'a, Option<N>>>
+}
+
+impl<'a, N> Iterator for NodeIterator<'a, N> {
+    type Item = Node<'a, usize, N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (id, opt) = self.inner.next()?;
+            if opt.is_some() {
+                let node = opt.as_ref().unwrap();
+                return Some(Node::new(id, node))
+            }
+        };
+    }
+}
+
+pub struct EdgeIterator<'a, E> {
+    inner: iter::Enumerate<slice::Iter<'a, Option<InternalEdge<E>>>>
+}
+
+impl<'a, E> Iterator for EdgeIterator<'a, E> {
+    type Item = Edge<'a, usize, usize, E>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (id, opt) = self.inner.next()?;
+            if opt.is_some() {
+                let edge = opt.as_ref().unwrap();
+                return Some(Edge::new(id, edge.u, edge.v, &edge.e))
+            }
+        };
     }
 }
