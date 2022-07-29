@@ -1,11 +1,12 @@
 use crate::graph::structure::edge::Edge;
 use crate::graph::structure::node::Node;
+use std::hash::Hash;
 
 pub trait Graph<'a> {
     type N: 'a;
-    type NId;
+    type NId: Eq + Hash + Copy;
     type E: 'a;
-    type EId;
+    type EId: Eq + Hash + Copy;
 
     type NodeIterator: Iterator<Item = Node<'a, Self::NId, Self::N>>;
     type EdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;

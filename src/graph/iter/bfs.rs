@@ -1,71 +1,57 @@
-/*use crate::graph::structure::{Graph};
+use crate::graph::structure::graph::{Graph};
+use crate::graph::structure::node::{Node};
+use crate::graph::structure::edge::{Edge};
 use std::collections::{HashMap, VecDeque};
 
+pub fn bfs<'a, G: Graph<'a>>(graph: &'a G, start: <G as Graph<'a>>::NId) -> Bfs<'a, G> {
+    Bfs::new(graph, start)
+}
+
 pub struct Bfs<'a, G: Graph<'a>> {
-    queue: VecDeque<G::Idx>,
-    parent: HashMap<G::Idx, Option<(G::Idx, &'a G::Edge)>>,
     graph: &'a G,
-    roots_itr: Option<Box<dyn Iterator<Item = (G::Idx, &'a G::Node)> + 'a>>,
+    queue: VecDeque<<G as Graph<'a>>::NId>,
+    parent: HashMap<<G as Graph<'a>>::NId, Option<<G as Graph<'a>>::EId>>,
 }
 
 impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
-    type Item = (G::Idx, &'a G::Node);
+    type Item = (Option<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>, Node<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.queue.is_empty() {
+        /*if self.queue.is_empty() {
             let (next_root, _) = self.roots_itr.as_mut()?.next()?;
             self.queue.push_back(next_root);
+        }*/
+
+        let node_id = self.queue.pop_front()?;
+        if !self.parent.contains_key(&node_id) {
+            self.parent.insert(node_id, None);
         }
 
-        let cur = self.queue.pop_front()?;
-        if !self.parent.contains_key(&cur) {
-            self.parent.insert(cur, None);
-        }
-
-        for (_, v, e) in self.graph.adj(cur) {
-            if !self.parent.contains_key(&v) {
-                self.parent.insert(v, Some((cur, e)));
-                self.queue.push_back(v);
+        for (edge, node) in self.graph.adj(node_id)? {
+            let next_id = node.id();
+            if !self.parent.contains_key(&next_id) {
+                self.parent.insert(next_id, Some(edge.id()));
+                self.queue.push_back(next_id);
             }
         }
-        Some((cur, self.graph.get_node(cur)?))
+
+        let node = self.graph.node(node_id).unwrap();
+        let parent_edge_opt = self.parent.get(&node_id).unwrap().map(|edge_id| self.graph.edge(edge_id).unwrap());
+        Some((parent_edge_opt, node))
     }
 }
 
 impl<'a, G: Graph<'a>> Bfs<'a, G> {
-    fn new(graph: &'a G, start: Option<G::Idx>) -> Bfs<'a, G> {
-        match start {
-            Some(idx) => Bfs {
-                graph,
-                queue: VecDeque::from(vec![idx,]),
-                parent: HashMap::new(),
-                roots_itr: None,
-            },
-            None => Bfs{
-                graph,
-                queue: VecDeque::new(),
-                parent: HashMap::new(),
-                roots_itr: Some(graph.nodes()),
-            },
+    fn new(graph: &'a G, start: <G as Graph<'a>>::NId) -> Bfs<'a, G> {
+        Bfs{
+            graph,
+            queue: VecDeque::from(vec![start,]),
+            parent: HashMap::new(),
         }
     }
 }
 
-pub trait BfsTrait<'a, G: Graph<'a>> {
-    fn bfs(&'a self) -> Bfs<'a, G>;
-    fn bfs_from(&'a self, start: G::Idx) -> Bfs<'a, G>;
-}
-
-impl<'a, G: Graph<'a>> BfsTrait<'a, G> for G {
-    fn bfs(&'a self) -> Bfs<'a, G> {
-        Bfs::new(&self, None)
-    }
-
-    fn bfs_from(&'a self, start: G::Idx) -> Bfs<'a, G> {
-        Bfs::new(&self, Some(start))
-    }
-}
-
+/*
 #[cfg(test)]
 mod tests {
     use crate::graph::structure::{SimpleGraph};
