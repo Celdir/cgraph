@@ -28,7 +28,7 @@ pub trait Graph<'a> {
     fn clear_node(&mut self, id: Self::NId) -> Option<()>;
 
     fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool;
-    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::EId, Self::EId, Self::E>>;
+    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn between(&'a self, u: Self::NId, v: Self::NId)
         -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn edge_data(&'a self, id: Self::EId) -> Option<&Self::E>;

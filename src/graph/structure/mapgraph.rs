@@ -1,5 +1,6 @@
 use crate::graph::structure::edge::Edge;
 use crate::graph::structure::node::Node;
+use crate::graph::structure::graph::{Graph, KeyedGraph};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::convert::From;
@@ -39,9 +40,24 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
             adj: HashMap::with_capacity(num_nodes),
         }
     }
+}
+
+impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, E> {
+    type N = N;
+    type NId = Id;
+    type E = E;
+    type EId = usize;
+
+    type NodeIterator = NodeIterator<'a, Id, N>;
+    type EdgeIterator =  EdgeIterator<'a, Id, E>;
+    type AdjIterator = AdjIterator<'a, Id, N, E>;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
+    }
+
+    fn contains_node(&self, id: Id) -> bool {
+        self.nodes.contains_key(&id)
     }
 
     fn node(&self, id: Id) -> Option<Node<Id, N>> {
@@ -56,18 +72,12 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         self.nodes.get_mut(&id)
     }
 
-    fn insert_node(&mut self, node: N) -> Id {
-        panic!("MapGraph nodes can only be inserted with put_node");
+    fn degree(&self, u: Id) -> usize {
+        self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
-    // returns previous node data if there was any, deletes any existing edges at that id
-    // to change node data without removing edges, use node_data_mut()
-    fn put_node(&mut self, id: Id, node: N) -> Option<N> {
-        let previous = self.remove_node(id);
-        self.nodes.insert(id, node);
-        self.adj.insert(id, HashMap::new());
-
-        previous
+    fn insert_node(&mut self, node: N) -> Id {
+        panic!("MapGraph nodes can only be inserted with put_node");
     }
 
     fn remove_node(&mut self, id: Id) -> Option<N> {
@@ -75,17 +85,27 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         self.nodes.remove(&id)
     }
 
-    fn contains_node(&self, id: Id) -> bool {
-        self.nodes.contains_key(&id)
+    fn clear_node(&mut self, id: Id) -> Option<()> {
+        let edge_ids: Vec<usize> = self.adj(id)?.map(|(edge, _)| edge.id()).collect();
+        for id in edge_ids {
+            self.remove_edge(id);
+        }
+        Some(())
     }
 
-    fn nodes(&self) -> impl Iterator<Item = Node<Id, N>> {
-        self.nodes.iter().map(|(id, n)| Node::new(*id, n))
+    fn contains_edge(&self, u: Id, v: Id) -> bool {
+        self.adj.get(&u).is_some() && self.adj[&u].contains_key(&v)
     }
 
-    fn edge(&self, id: usize) -> Option<Edge<Id, usize, E>> {
+    fn edge(&'a self, id: usize) -> Option<Edge<'a, Id, usize, E>> {
         let edge = self.edges.get(&id)?;
         Some(Edge::new(id, edge.u, edge.v, &edge.e))
+    }
+
+    fn between(&self, u: Id, v: Id) -> Option<Edge<Id, usize, E>> {
+        let &edge_id = self.adj.get(&u)?.get(&v)?;
+        let edge = self.edges.get(&edge_id)?;
+        Some(Edge::new(edge_id, u, v, &edge.e))
     }
 
     fn edge_data(&self, id: usize) -> Option<&E> {
@@ -108,8 +128,7 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         Some(id)
     }
 
-    fn remove_edge(&mut self, id: usize) -> Option<E> {
-        let internal_edge = self.edges.remove(&id)?;
+    fn remove_edge(&mut self, id: usize) -> Option<E> { let internal_edge = self.edges.remove(&id)?;
         self.adj
             .get_mut(&internal_edge.u)
             .unwrap()
@@ -117,28 +136,16 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         Some(internal_edge.e)
     }
 
-    fn clear_node(&mut self, id: Id) -> Option<()> {
-        let edge_ids: Vec<usize> = self.adj(id)?.map(|(edge, _)| edge.id()).collect();
-        for id in edge_ids {
-            self.remove_edge(id);
+    fn nodes(&self) -> NodeIterator<Id, N> {
+        NodeIterator{
+            inner: self.nodes.iter()
         }
-        Some(())
     }
 
-    fn edges(&self) -> impl Iterator<Item = Edge<Id, usize, E>> {
-        self.edges
-            .iter()
-            .map(|(&id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
-    }
-
-    fn contains_edge(&self, u: Id, v: Id) -> bool {
-        self.adj.get(&u).is_some() && self.adj[&u].contains_key(&v)
-    }
-
-    fn between(&self, u: Id, v: Id) -> Option<Edge<Id, usize, E>> {
-        let &edge_id = self.adj.get(&u)?.get(&v)?;
-        let edge = self.edges.get(&edge_id)?;
-        Some(Edge::new(edge_id, u, v, &edge.e))
+    fn edges(&self) -> EdgeIterator<Id, E> {
+        EdgeIterator{
+            inner: self.edges.iter()
+        }
     }
 
     fn adj(&self, u: Id) -> Option<AdjIterator<Id, N, E>> {
@@ -149,9 +156,20 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
             iter: self.adj.get(&u)?.iter(),
         })
     }
+}
 
-    fn degree(&self, u: Id) -> usize {
-        self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
+impl<'a, Id: Eq + Hash + Copy, N: 'a, E: 'a> KeyedGraph<'a> for MapGraph<Id, N, E> {
+    type N = N;
+    type NId = Id;
+
+    // returns previous node data if there was any, deletes any existing edges at that id
+    // to change node data without removing edges, use node_data_mut()
+    fn put_node(&mut self, id: Id, node: N) -> Option<N> {
+        let previous = self.remove_node(id);
+        self.nodes.insert(id, node);
+        self.adj.insert(id, HashMap::new());
+
+        previous
     }
 }
 
@@ -176,7 +194,31 @@ impl<Id: Eq + Hash + Copy + Display, N, E> From<(Vec<(Id, N)>, Vec<(Id, Id, E)>)
     }
 }
 
-struct AdjIterator<'a, Id, N, E> {
+pub struct NodeIterator<'a, Id, N> {
+    inner: Iter<'a, Id, N>,
+}
+
+impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N> {
+    type Item = Node<'a, Id, N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(id, n)| Node::new(*id, n))
+    }
+}
+
+pub struct EdgeIterator<'a, Id, E> {
+    inner: Iter<'a, usize, InternalEdge<Id, E>>,
+}
+
+impl<'a, Id: Copy + Eq + Hash, E: 'a> Iterator for EdgeIterator<'a, Id, E> {
+    type Item = Edge<'a, Id, usize, E>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(&id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
+    }
+}
+
+pub struct AdjIterator<'a, Id, N, E> {
     u: Id,
     nodes: &'a HashMap<Id, N>,
     edges: &'a HashMap<usize, InternalEdge<Id, E>>,
