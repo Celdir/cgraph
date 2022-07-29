@@ -62,6 +62,7 @@ pub trait DirectedGraph<'a> {
     fn in_degree(&'a self, u: Self::NId) -> usize;
 
     fn reverse(&'a self) -> Self;
+    fn reverse_edge(&'a mut self, id: Self::EId) -> Option<()>;
 }
 
 pub trait MultiGraph<'a> {

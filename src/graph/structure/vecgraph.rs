@@ -245,6 +245,12 @@ where
 
         reverse_graph
     }
+
+    fn reverse_edge(&mut self, id: usize) -> Option<()> {
+        let edge = self.edges.get_mut(id)?.as_mut()?;
+        std::mem::swap(&mut edge.u, &mut edge.v);
+        Some(())
+    }
 }
 
 impl<'a, N, E> MultiGraph<'a> for VecGraph<N, E>
