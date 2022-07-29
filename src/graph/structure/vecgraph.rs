@@ -1,17 +1,18 @@
 use crate::graph::structure::edge::Edge;
+use crate::graph::structure::graph::{DirectedGraph, Graph, MultiGraph};
 use crate::graph::structure::node::Node;
-use crate::graph::structure::graph::{DirectedGraph, MultiGraph, Graph};
 use std::collections::hash_map;
 use std::collections::HashMap;
 use std::convert::From;
 use std::iter;
-use std::slice;
 use std::ops::Index;
+use std::slice;
 
 // TODO: implement pooling for re-using deleted node and edge ids
 // alternative, just use hashmaps to store nodes and edges
 //
 
+#[derive(Clone)]
 struct InternalEdge<E> {
     u: usize,
     v: usize,
@@ -19,7 +20,12 @@ struct InternalEdge<E> {
 }
 
 // Directed graph
-pub struct VecGraph<N, E> {
+#[derive(Clone)]
+pub struct VecGraph<N, E>
+where
+    N: Clone,
+    E: Clone,
+{
     nodes: Vec<Option<N>>,
     nodes_len: usize,
     edges: Vec<Option<InternalEdge<E>>>,
@@ -28,7 +34,7 @@ pub struct VecGraph<N, E> {
     in_adj: Vec<HashMap<usize, usize>>,
 }
 
-impl<N, E> VecGraph<N, E> {
+impl<N: Clone, E: Clone> VecGraph<N, E> {
     fn new() -> VecGraph<N, E> {
         VecGraph {
             nodes: Vec::new(),
@@ -52,7 +58,11 @@ impl<N, E> VecGraph<N, E> {
     }
 }
 
-impl<'a, N: 'a, E: 'a> Graph<'a> for VecGraph<N, E> {
+impl<'a, N, E> Graph<'a> for VecGraph<N, E>
+where
+    N: 'a + Clone,
+    E: 'a + Clone,
+{
     type N = N;
     type NId = usize;
     type E = E;
@@ -166,14 +176,14 @@ impl<'a, N: 'a, E: 'a> Graph<'a> for VecGraph<N, E> {
     }
 
     fn nodes(&self) -> NodeIterator<N> {
-        NodeIterator{
-            inner: self.nodes.iter().enumerate()
+        NodeIterator {
+            inner: self.nodes.iter().enumerate(),
         }
     }
 
     fn edges(&self) -> EdgeIterator<E> {
         EdgeIterator {
-            inner: self.edges.iter().enumerate()
+            inner: self.edges.iter().enumerate(),
         }
     }
 
@@ -183,7 +193,11 @@ impl<'a, N: 'a, E: 'a> Graph<'a> for VecGraph<N, E> {
     }
 }
 
-impl<'a, N: 'a, E: 'a> DirectedGraph<'a> for VecGraph<N, E> {
+impl<'a, N, E> DirectedGraph<'a> for VecGraph<N, E>
+where
+    N: 'a + Clone,
+    E: 'a + Clone,
+{
     type N = N;
     type NId = usize;
     type E = E;
@@ -216,9 +230,28 @@ impl<'a, N: 'a, E: 'a> DirectedGraph<'a> for VecGraph<N, E> {
     fn in_degree(&self, u: usize) -> usize {
         self.in_adj.get(u).map_or(0, |adj_map| adj_map.len())
     }
+
+    fn reverse(&self) -> VecGraph<N, E> {
+        let copy: VecGraph<N, E> = self.clone();
+        let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
+
+        let mut reverse_graph = VecGraph::with_capacity(nodes.len(), edges.len());
+        for n in nodes {
+            reverse_graph.insert_node(n);
+        }
+        for (u, v, e) in edges {
+            reverse_graph.insert_edge(v, u, e);
+        }
+
+        reverse_graph
+    }
 }
 
-impl<'a, N: 'a, E: 'a> MultiGraph<'a> for VecGraph<N, E> {
+impl<'a, N, E> MultiGraph<'a> for VecGraph<N, E>
+where
+    N: 'a + Clone,
+    E: 'a + Clone,
+{
     type N = N;
     type NId = usize;
     type E = E;
@@ -226,11 +259,7 @@ impl<'a, N: 'a, E: 'a> MultiGraph<'a> for VecGraph<N, E> {
 
     type EdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
 
-    fn between_multi(
-        &'a self,
-        u: usize,
-        v: usize,
-    ) -> Option<Self::EdgeIterator> {
+    fn between_multi(&'a self, u: usize, v: usize) -> Option<Self::EdgeIterator> {
         let &edge_id = self.out_adj.get(u)?.get(&v)?;
         match self.edges.get(edge_id) {
             Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),
@@ -239,7 +268,7 @@ impl<'a, N: 'a, E: 'a> MultiGraph<'a> for VecGraph<N, E> {
     }
 }
 
-impl<N, E> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
+impl<N: Clone, E: Clone> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
     fn from(data: (Vec<N>, Vec<(usize, usize, E)>)) -> Self {
         let (nodes, edges) = data;
         let mut graph = VecGraph::with_capacity(nodes.len(), edges.len());
@@ -255,6 +284,26 @@ impl<N, E> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
         }
 
         graph
+    }
+}
+
+impl<N: Clone, E: Clone> From<VecGraph<N, E>> for (Vec<N>, Vec<(usize, usize, E)>) {
+    fn from(graph: VecGraph<N, E>) -> Self {
+        let nodes: Vec<N> = graph
+            .nodes
+            .into_iter()
+            .filter(|opt| opt.is_some())
+            .map(|opt| opt.unwrap())
+            .collect();
+        let edges: Vec<(usize, usize, E)> = graph
+            .edges
+            .into_iter()
+            .filter(|opt| opt.is_some())
+            .map(|opt| opt.unwrap())
+            .map(|edge| (edge.u, edge.v, edge.e))
+            .collect();
+
+        (nodes, edges)
     }
 }
 
@@ -279,7 +328,7 @@ impl<'a, N, E> Iterator for AdjIterator<'a, N, E> {
 }
 
 pub struct NodeIterator<'a, N> {
-    inner: iter::Enumerate<slice::Iter<'a, Option<N>>>
+    inner: iter::Enumerate<slice::Iter<'a, Option<N>>>,
 }
 
 impl<'a, N> Iterator for NodeIterator<'a, N> {
@@ -290,14 +339,14 @@ impl<'a, N> Iterator for NodeIterator<'a, N> {
             let (id, opt) = self.inner.next()?;
             if opt.is_some() {
                 let node = opt.as_ref().unwrap();
-                return Some(Node::new(id, node))
+                return Some(Node::new(id, node));
             }
-        };
+        }
     }
 }
 
 pub struct EdgeIterator<'a, E> {
-    inner: iter::Enumerate<slice::Iter<'a, Option<InternalEdge<E>>>>
+    inner: iter::Enumerate<slice::Iter<'a, Option<InternalEdge<E>>>>,
 }
 
 impl<'a, E> Iterator for EdgeIterator<'a, E> {
@@ -308,8 +357,8 @@ impl<'a, E> Iterator for EdgeIterator<'a, E> {
             let (id, opt) = self.inner.next()?;
             if opt.is_some() {
                 let edge = opt.as_ref().unwrap();
-                return Some(Edge::new(id, edge.u, edge.v, &edge.e))
+                return Some(Edge::new(id, edge.u, edge.v, &edge.e));
             }
-        };
+        }
     }
 }

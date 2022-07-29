@@ -60,6 +60,8 @@ pub trait DirectedGraph<'a> {
 
     fn in_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
     fn in_degree(&'a self, u: Self::NId) -> usize;
+
+    fn reverse(&'a self) -> Self;
 }
 
 pub trait MultiGraph<'a> {
