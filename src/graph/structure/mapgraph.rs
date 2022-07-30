@@ -13,12 +13,14 @@ use std::ops::Index;
 // alternative, just use hashmaps to store nodes and edges
 //
 
+#[derive(Clone)]
 struct InternalEdge<Id, E> {
     u: Id,
     v: Id,
     e: E,
 }
 
+#[derive(Clone)]
 pub struct MapGraph<Id, N, E> {
     nodes: HashMap<Id, N>,
     edges: HashMap<usize, InternalEdge<Id, E>>,
