@@ -17,11 +17,6 @@ impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
     type Item = (Option<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>, Node<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        /*if self.queue.is_empty() {
-            let (next_root, _) = self.roots_itr.as_mut()?.next()?;
-            self.queue.push_back(next_root);
-        }*/
-
         let node_id = self.queue.pop_front()?;
         if !self.parent.contains_key(&node_id) {
             self.parent.insert(node_id, None);
