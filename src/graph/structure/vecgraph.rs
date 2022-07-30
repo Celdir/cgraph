@@ -198,13 +198,6 @@ where
     N: 'a + Clone,
     E: 'a + Clone,
 {
-    type N = N;
-    type NId = usize;
-    type E = E;
-    type EId = usize;
-
-    type AdjIterator = AdjIterator<'a, N, E>;
-
     fn out_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
             u,
@@ -258,14 +251,9 @@ where
     N: 'a + Clone,
     E: 'a + Clone,
 {
-    type N = N;
-    type NId = usize;
-    type E = E;
-    type EId = usize;
+    type MultiEdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
 
-    type EdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
-
-    fn between_multi(&'a self, u: usize, v: usize) -> Option<Self::EdgeIterator> {
+    fn between_multi(&'a self, u: usize, v: usize) -> Option<Self::MultiEdgeIterator> {
         let &edge_id = self.out_adj.get(u)?.get(&v)?;
         match self.edges.get(edge_id) {
             Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),

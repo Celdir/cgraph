@@ -43,19 +43,7 @@ pub trait Graph<'a> {
     fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
 }
 
-pub trait DirectedGraph<'a> {
-    type N: 'a;
-    type NId;
-    type E: 'a;
-    type EId;
-
-    type AdjIterator: Iterator<
-        Item = (
-            Edge<'a, Self::NId, Self::EId, Self::E>,
-            Node<'a, Self::NId, Self::N>,
-        ),
-    >;
-
+pub trait DirectedGraph<'a>: Graph<'a> {
     fn out_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
     fn out_degree(&'a self, u: Self::NId) -> usize;
 
@@ -66,20 +54,12 @@ pub trait DirectedGraph<'a> {
     fn reverse_edge(&'a mut self, id: Self::EId) -> Option<()>;
 }
 
-pub trait MultiGraph<'a> {
-    type N: 'a;
-    type NId;
-    type E: 'a;
-    type EId;
+pub trait MultiGraph<'a>: Graph<'a> {
+    type MultiEdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
 
-    type EdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
-
-    fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::EdgeIterator>;
+    fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator>;
 }
 
-pub trait KeyedGraph<'a> {
-    type N: 'a;
-    type NId;
-
+pub trait KeyedGraph<'a>: Graph<'a> {
     fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }

@@ -158,10 +158,7 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
     }
 }
 
-impl<'a, Id: Eq + Hash + Copy, N: 'a, E: 'a> KeyedGraph<'a> for MapGraph<Id, N, E> {
-    type N = N;
-    type NId = Id;
-
+impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> KeyedGraph<'a> for MapGraph<Id, N, E> {
     // returns previous node data if there was any, deletes any existing edges at that id
     // to change node data without removing edges, use node_data_mut()
     fn put_node(&mut self, id: Id, node: N) -> Option<N> {
