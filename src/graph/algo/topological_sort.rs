@@ -32,6 +32,12 @@ pub fn topological_sort<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<No
         order.push(node);
     }
 
+    let (num_nodes, _) = graph.len();
+    if order.len() != num_nodes {
+        // There must be a cycle in the graph and therefore no topological order
+        return None
+    }
+
     Some(order)
 }
 
