@@ -22,6 +22,7 @@ struct InternalEdge<Id, E> {
 pub struct MapGraph<Id, N, E> {
     nodes: HashMap<Id, N>,
     edges: HashMap<usize, InternalEdge<Id, E>>,
+    next_edge_id: usize,
     adj: HashMap<Id, HashMap<Id, usize>>,
 }
 
@@ -30,6 +31,7 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         MapGraph {
             nodes: HashMap::new(),
             edges: HashMap::new(),
+            next_edge_id: 0,
             adj: HashMap::new(),
         }
     }
@@ -37,6 +39,7 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
         MapGraph {
             nodes: HashMap::with_capacity(num_nodes),
             edges: HashMap::with_capacity(num_edges),
+            next_edge_id: 0,
             adj: HashMap::with_capacity(num_nodes),
         }
     }
@@ -121,7 +124,9 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
             return None;
         }
 
-        let id = self.edges.len();
+        let id = self.next_edge_id;
+        self.next_edge_id += 1;
+
         self.edges.insert(id, InternalEdge { u, v, e: edge });
         self.adj.get_mut(&u).unwrap().insert(v, id);
         self.adj.get_mut(&v).unwrap().insert(u, id);

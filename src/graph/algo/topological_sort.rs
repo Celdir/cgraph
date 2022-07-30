@@ -37,12 +37,12 @@ pub fn topological_sort<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<No
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::structure::vecgraph::VecGraph;
+    use crate::graph::structure::vecgraph::StableVecGraph;
     use crate::graph::algo::topological_sort::topological_sort;
 
     #[test]
     fn top_sort_triangle() {
-        let graph = VecGraph::from((
+        let graph = StableVecGraph::from((
             vec![(); 3],
             vec![
                 (0, 1, ()),

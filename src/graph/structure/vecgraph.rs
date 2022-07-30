@@ -21,7 +21,7 @@ struct InternalEdge<E> {
 
 // Directed graph
 #[derive(Clone)]
-pub struct VecGraph<N, E>
+pub struct StableVecGraph<N, E>
 where
     N: Clone,
     E: Clone,
@@ -34,9 +34,9 @@ where
     in_adj: Vec<HashMap<usize, usize>>,
 }
 
-impl<N: Clone, E: Clone> VecGraph<N, E> {
-    fn new() -> VecGraph<N, E> {
-        VecGraph {
+impl<N: Clone, E: Clone> StableVecGraph<N, E> {
+    fn new() -> StableVecGraph<N, E> {
+        StableVecGraph {
             nodes: Vec::new(),
             nodes_len: 0,
             edges: Vec::new(),
@@ -46,8 +46,8 @@ impl<N: Clone, E: Clone> VecGraph<N, E> {
         }
     }
 
-    fn with_capacity(num_nodes: usize, num_edges: usize) -> VecGraph<N, E> {
-        VecGraph {
+    fn with_capacity(num_nodes: usize, num_edges: usize) -> StableVecGraph<N, E> {
+        StableVecGraph {
             nodes: Vec::with_capacity(num_nodes),
             nodes_len: 0,
             edges: Vec::with_capacity(num_edges),
@@ -58,7 +58,7 @@ impl<N: Clone, E: Clone> VecGraph<N, E> {
     }
 }
 
-impl<'a, N, E> Graph<'a> for VecGraph<N, E>
+impl<'a, N, E> Graph<'a> for StableVecGraph<N, E>
 where
     N: 'a + Clone,
     E: 'a + Clone,
@@ -193,7 +193,7 @@ where
     }
 }
 
-impl<'a, N, E> DirectedGraph<'a> for VecGraph<N, E>
+impl<'a, N, E> DirectedGraph<'a> for StableVecGraph<N, E>
 where
     N: 'a + Clone,
     E: 'a + Clone,
@@ -224,11 +224,11 @@ where
         self.in_adj.get(u).map_or(0, |adj_map| adj_map.len())
     }
 
-    fn reverse(&self) -> VecGraph<N, E> {
-        let copy: VecGraph<N, E> = self.clone();
+    fn reverse(&self) -> StableVecGraph<N, E> {
+        let copy: StableVecGraph<N, E> = self.clone();
         let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
 
-        let mut reverse_graph = VecGraph::with_capacity(nodes.len(), edges.len());
+        let mut reverse_graph = StableVecGraph::with_capacity(nodes.len(), edges.len());
         for n in nodes {
             reverse_graph.insert_node(n);
         }
@@ -246,7 +246,7 @@ where
     }
 }
 
-impl<'a, N, E> MultiGraph<'a> for VecGraph<N, E>
+impl<'a, N, E> MultiGraph<'a> for StableVecGraph<N, E>
 where
     N: 'a + Clone,
     E: 'a + Clone,
@@ -262,10 +262,10 @@ where
     }
 }
 
-impl<N: Clone, E: Clone> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, E> {
+impl<N: Clone, E: Clone> From<(Vec<N>, Vec<(usize, usize, E)>)> for StableVecGraph<N, E> {
     fn from(data: (Vec<N>, Vec<(usize, usize, E)>)) -> Self {
         let (nodes, edges) = data;
-        let mut graph = VecGraph::with_capacity(nodes.len(), edges.len());
+        let mut graph = StableVecGraph::with_capacity(nodes.len(), edges.len());
 
         for n in nodes {
             graph.insert_node(n);
@@ -281,8 +281,8 @@ impl<N: Clone, E: Clone> From<(Vec<N>, Vec<(usize, usize, E)>)> for VecGraph<N, 
     }
 }
 
-impl<N: Clone, E: Clone> From<VecGraph<N, E>> for (Vec<N>, Vec<(usize, usize, E)>) {
-    fn from(graph: VecGraph<N, E>) -> Self {
+impl<N: Clone, E: Clone> From<StableVecGraph<N, E>> for (Vec<N>, Vec<(usize, usize, E)>) {
+    fn from(graph: StableVecGraph<N, E>) -> Self {
         let nodes: Vec<N> = graph
             .nodes
             .into_iter()

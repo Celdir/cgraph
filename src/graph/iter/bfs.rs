@@ -57,12 +57,12 @@ impl<'a, G: Graph<'a>> Bfs<'a, G> {
 mod tests {
     use crate::graph::iter::bfs::bfs;
     use crate::graph::structure::mapgraph::MapGraph;
-    use crate::graph::structure::vecgraph::VecGraph;
+    use crate::graph::structure::vecgraph::StableVecGraph;
     use std::collections::HashMap;
 
     #[test]
     fn bfs_digraph() {
-        let graph = VecGraph::from((
+        let graph = StableVecGraph::from((
             vec![(); 7],
             vec![
                 (0, 1, ()),
