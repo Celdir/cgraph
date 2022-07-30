@@ -1,6 +1,6 @@
-use crate::graph::structure::graph::{Graph};
-use crate::graph::structure::node::{Node};
-use crate::graph::structure::edge::{Edge};
+use crate::graph::structure::edge::Edge;
+use crate::graph::structure::graph::Graph;
+use crate::graph::structure::node::Node;
 use std::collections::{HashMap, VecDeque};
 
 pub fn dfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
@@ -14,7 +14,10 @@ pub struct Dfs<'a, G: Graph<'a>> {
 }
 
 impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
-    type Item = (Option<Edge<'a, G::NId, G::EId, G::E>>, Node<'a, G::NId, G::N>);
+    type Item = (
+        Option<Edge<'a, G::NId, G::EId, G::E>>,
+        Node<'a, G::NId, G::N>,
+    );
 
     fn next(&mut self) -> Option<Self::Item> {
         let node_id = self.stack.pop()?;
@@ -32,16 +35,20 @@ impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
         }
 
         let node = self.graph.node(node_id).unwrap();
-        let parent_edge_opt = self.parent.get(&node_id).unwrap().map(|edge_id| self.graph.edge(edge_id).unwrap());
+        let parent_edge_opt = self
+            .parent
+            .get(&node_id)
+            .unwrap()
+            .map(|edge_id| self.graph.edge(edge_id).unwrap());
         Some((parent_edge_opt, node))
     }
 }
 
 impl<'a, G: Graph<'a>> Dfs<'a, G> {
     fn new(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
-        Dfs{
+        Dfs {
             graph,
-            stack: vec![start,],
+            stack: vec![start],
             parent: HashMap::new(),
         }
     }
