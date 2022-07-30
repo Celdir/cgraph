@@ -12,7 +12,7 @@ pub struct Edge<'a, NodeId, EdgeId, E> {
     data: &'a E,
 }
 
-impl<'a, NodeId: Copy, EdgeId: Copy, E> Edge<'a, NodeId, EdgeId, E> {
+impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
     pub fn new(id: EdgeId, origin: NodeId, destination: NodeId, data: &'a E) -> Edge<'a, NodeId, EdgeId, E> {
         Edge { id, origin, destination, data }
     }
@@ -35,6 +35,14 @@ impl<'a, NodeId: Copy, EdgeId: Copy, E> Edge<'a, NodeId, EdgeId, E> {
 
     pub fn v(&self) -> NodeId {
         self.destination
+    }
+
+    pub fn other(&self, id: NodeId) -> NodeId {
+        match id {
+            x if x == self.origin => self.destination,
+            x if x == self.destination => self.origin,
+            _ => panic!("cannot give other of invalid node id"),
+        }
     }
 
     pub fn data(&self) -> &'a E {
