@@ -61,4 +61,19 @@ mod tests {
         let order: Vec<_> = topological_sort(&graph).unwrap().iter().map(|node| node.id()).collect();
         assert_eq!(expected_order, order);
     }
+
+    #[test]
+    fn top_sort_cycle() {
+        let graph = StableVecGraph::from((
+            vec![(); 3],
+            vec![
+                (0, 1, ()),
+                (1, 2, ()),
+                (2, 0, ()),
+            ],
+        ));
+
+        let order: Option<Vec<_>> = topological_sort(&graph);;
+        assert!(order.is_none());
+    }
 }
