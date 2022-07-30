@@ -3,18 +3,18 @@ use crate::graph::structure::node::{Node};
 use crate::graph::structure::edge::{Edge};
 use std::collections::{HashMap, VecDeque};
 
-pub fn dfs<'a, G: Graph<'a>>(graph: &'a G, start: <G as Graph<'a>>::NId) -> Dfs<'a, G> {
+pub fn dfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
     Dfs::new(graph, start)
 }
 
 pub struct Dfs<'a, G: Graph<'a>> {
     graph: &'a G,
-    stack: Vec<<G as Graph<'a>>::NId>,
-    parent: HashMap<<G as Graph<'a>>::NId, Option<<G as Graph<'a>>::EId>>,
+    stack: Vec<G::NId>,
+    parent: HashMap<G::NId, Option<G::EId>>,
 }
 
 impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
-    type Item = (Option<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>, Node<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::N>);
+    type Item = (Option<Edge<'a, G::NId, G::EId, G::E>>, Node<'a, G::NId, G::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let node_id = self.stack.pop()?;
@@ -38,7 +38,7 @@ impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
 }
 
 impl<'a, G: Graph<'a>> Dfs<'a, G> {
-    fn new(graph: &'a G, start: <G as Graph<'a>>::NId) -> Dfs<'a, G> {
+    fn new(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
         Dfs{
             graph,
             stack: vec![start,],

@@ -3,18 +3,18 @@ use crate::graph::structure::node::{Node};
 use crate::graph::structure::edge::{Edge};
 use std::collections::{HashMap, VecDeque};
 
-pub fn bfs<'a, G: Graph<'a>>(graph: &'a G, start: <G as Graph<'a>>::NId) -> Bfs<'a, G> {
+pub fn bfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
     Bfs::new(graph, start)
 }
 
 pub struct Bfs<'a, G: Graph<'a>> {
     graph: &'a G,
-    queue: VecDeque<<G as Graph<'a>>::NId>,
-    parent: HashMap<<G as Graph<'a>>::NId, Option<<G as Graph<'a>>::EId>>,
+    queue: VecDeque<G::NId>,
+    parent: HashMap<G::NId, Option<G::EId>>,
 }
 
 impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
-    type Item = (Option<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>, Node<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::N>);
+    type Item = (Option<Edge<'a, G::NId, G::EId, G::E>>, Node<'a, G::NId, G::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let node_id = self.queue.pop_front()?;
@@ -37,7 +37,7 @@ impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
 }
 
 impl<'a, G: Graph<'a>> Bfs<'a, G> {
-    fn new(graph: &'a G, start: <G as Graph<'a>>::NId) -> Bfs<'a, G> {
+    fn new(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
         Bfs{
             graph,
             queue: VecDeque::from(vec![start,]),
