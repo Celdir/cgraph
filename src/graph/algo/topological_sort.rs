@@ -3,7 +3,8 @@ use crate::graph::structure::graph::DirectedGraph;
 use crate::graph::structure::node::Node;
 use std::collections::{HashMap, VecDeque};
 
-pub fn topological_order<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<Node<'a, G::NId, G::N>>> {
+// assumes the graph has an edge from A to B if B depends on A
+pub fn topological_sort<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<Node<'a, G::NId, G::N>>> {
     let mut in_degree: HashMap<G::NId, usize> = HashMap::new();
     let mut queue: VecDeque<Node<'a, G::NId, G::N>> = VecDeque::new();
 
@@ -32,4 +33,26 @@ pub fn topological_order<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<N
     }
 
     Some(order)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::structure::vecgraph::VecGraph;
+    use crate::graph::algo::topological_sort::topological_sort;
+
+    #[test]
+    fn top_sort_triangle() {
+        let graph = VecGraph::from((
+            vec![(); 3],
+            vec![
+                (0, 1, ()),
+                (0, 2, ()),
+                (1, 2, ()),
+            ],
+        ));
+
+        let expected_order = vec![0, 1, 2];
+        let order: Vec<_> = topological_sort(&graph).unwrap().iter().map(|node| node.id()).collect();
+        assert_eq!(expected_order, order);
+    }
 }
