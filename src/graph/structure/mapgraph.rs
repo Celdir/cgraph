@@ -140,6 +140,10 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
             .get_mut(&internal_edge.u)
             .unwrap()
             .remove(&internal_edge.v);
+        self.adj
+            .get_mut(&internal_edge.v)
+            .unwrap()
+            .remove(&internal_edge.u);
         Some(internal_edge.e)
     }
 
