@@ -19,9 +19,7 @@ pub fn topological_sort<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<No
     }
 
     let mut order: Vec<Node<'a, G::NId, G::N>> = Vec::new();
-    while !queue.is_empty() {
-        let node = queue.pop_front()?;
-
+    while let Some(node) = queue.pop_front() {
         for (_, next) in graph.out_edges(node.id())? {
             in_degree.entry(next.id()).and_modify(|deg| {*deg -= 1} );
             if in_degree[&next.id()] == 0 {
