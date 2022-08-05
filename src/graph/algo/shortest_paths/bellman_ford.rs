@@ -9,6 +9,8 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ops::Add;
 
+// TODO: add cycle finding function to this file
+
 // returns shortest path tree and boolean that is true if negative cycle is found
 pub fn bellman_ford<'a, G>(graph: &'a G, start: G::NId) -> (ShortestPathTree<'a, G>, bool)
 where
