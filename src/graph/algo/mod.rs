@@ -1,2 +1,2 @@
 pub mod topological_sort;
-pub mod dijkstra;
+pub mod shortest_paths;

@@ -5,6 +5,7 @@ pub enum Direction {
     Undirected,
 }
 
+#[derive(Clone)]
 pub struct Edge<'a, NodeId, EdgeId, E> {
     id: EdgeId,
     origin: NodeId,
