@@ -9,10 +9,14 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ops::Add;
 
-// TODO: add cycle finding function to this file
+type Cycle<'a, G> =
+    Vec<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>;
 
 // returns shortest path tree and boolean that is true if negative cycle is found
-pub fn bellman_ford<'a, G>(graph: &'a G, start: G::NId) -> (ShortestPathTree<'a, G>, bool)
+pub fn bellman_ford<'a, G>(
+    graph: &'a G,
+    start: G::NId,
+) -> (ShortestPathTree<'a, G>, Option<Cycle<'a, G>>)
 where
     G: Graph<'a>,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
@@ -21,7 +25,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return (ShortestPathTree::new(dist, parent), false);
+        return (ShortestPathTree::new(dist, parent), None);
     }
 
     dist.insert(start, G::E::default());
@@ -29,6 +33,7 @@ where
     // n-1 iterations to find shortest paths, +1 final iteration to check for negative cycle
     let (iterations, _) = graph.len();
     let mut change = true;
+    let mut last_changed: Option<G::NId> = None;
     for _ in 0..iterations {
         if !change {
             break;
@@ -50,12 +55,44 @@ where
                     dist.insert(v_id, v_dist_new);
                     parent.insert(v_id, edge);
                     change = true;
+                    last_changed = Some(v_id);
                 }
             }
         }
     }
 
-    (ShortestPathTree::new(dist, parent), change)
+    let cycle = match change {
+        true => {
+            let mut edges = Vec::new();
+            let mut cycle_root_id = last_changed.unwrap();
+
+            // move up to parent N times to ensure cycle_root is in the cycle and not in a chain outside
+            // of the cycle.
+            // for example: A <--(-3)--> B --1--> C
+            // In the above example, C's distance from A might be updated in the last iteration of
+            // bellman ford, but C itself is not part of the negative cycle between A and B.
+            for _ in 0..iterations {
+                cycle_root_id = parent[&cycle_root_id].other(cycle_root_id);
+            }
+
+            let mut node_id = cycle_root_id;
+
+            while let Some(edge) = parent.get(&node_id) {
+                node_id = edge.other(node_id);
+                edges.push(edge.clone());
+
+                if node_id == cycle_root_id {
+                    break;
+                }
+            }
+
+            edges.reverse();
+            Some(edges)
+        }
+        _ => None,
+    };
+
+    (ShortestPathTree::new(dist, parent), cycle)
 }
 
 #[cfg(test)]
@@ -159,18 +196,19 @@ mod tests {
 
     #[test]
     fn bellman_ford_negative_cycle() {
-        // A --5-- B
-        // |       |
+        // A --5--> B
+        // ^       |
         // 2       -6
-        // |       |
-        // C -(-2)-D
-        let graph = MapGraph::from((
-            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
-            vec![("A", "B", 5), ("A", "C", 2), ("C", "D", -2), ("B", "D", -6)],
+        // |       v
+        // C <(-2)-D
+        let graph = StableVecGraph::from((
+            vec![(0, ()), (1, ()), (2, ()), (3, ())],
+            vec![(0, 1, 5), (1, 3, -6), (3, 2, -2), (2, 0, 2)],
         ));
 
-        let (tree, has_cycle) = bellman_ford(&graph, "A");
-        assert!(has_cycle);
+        let (_, cycle) = bellman_ford(&graph, 0);
+        assert!(cycle.is_some());
+        assert_eq!(cycle.unwrap().len(), 4);
     }
 
     #[test]
@@ -185,8 +223,9 @@ mod tests {
             vec![("A", "B", 5), ("A", "C", 2), ("C", "D", -2), ("B", "D", -4)],
         ));
 
-        let (tree, has_cycle) = bellman_ford(&graph, "A");
-        assert!(has_cycle);
+        let (_, cycle) = bellman_ford(&graph, "A");
+        assert!(cycle.is_some());
+        assert_eq!(cycle.unwrap().len(), 2);
     }
 
     #[test]
@@ -201,8 +240,8 @@ mod tests {
             vec![(0, 1, -5), (0, 2, -2), (2, 3, -2), (1, 3, -6)],
         ));
 
-        let (tree, has_cycle) = bellman_ford(&graph, 0);
-        assert!(!has_cycle);
+        let (tree, cycle) = bellman_ford(&graph, 0);
+        assert!(cycle.is_none());
         assert_eq!(tree.dist(0), Some(&0));
         assert_eq!(tree.dist(1), Some(&-5));
         assert_eq!(tree.dist(2), Some(&-2));
