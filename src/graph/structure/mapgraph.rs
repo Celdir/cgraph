@@ -1,6 +1,6 @@
 use crate::graph::structure::edge::Edge;
+use crate::graph::structure::graph::{Graph, KeyedGraph, UndirectedGraph};
 use crate::graph::structure::node::Node;
-use crate::graph::structure::graph::{Graph, KeyedGraph};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::convert::From;
@@ -54,7 +54,7 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
     type EId = usize;
 
     type NodeIterator = NodeIterator<'a, Id, N>;
-    type EdgeIterator =  EdgeIterator<'a, Id, E>;
+    type EdgeIterator = EdgeIterator<'a, Id, E>;
     type AdjIterator = AdjIterator<'a, Id, N, E>;
 
     fn len(&self) -> (usize, usize) {
@@ -135,7 +135,8 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         Some(id)
     }
 
-    fn remove_edge(&mut self, id: usize) -> Option<E> { let internal_edge = self.edges.remove(&id)?;
+    fn remove_edge(&mut self, id: usize) -> Option<E> {
+        let internal_edge = self.edges.remove(&id)?;
         self.adj
             .get_mut(&internal_edge.u)
             .unwrap()
@@ -148,14 +149,14 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
     }
 
     fn nodes(&self) -> NodeIterator<Id, N> {
-        NodeIterator{
-            inner: self.nodes.iter()
+        NodeIterator {
+            inner: self.nodes.iter(),
         }
     }
 
     fn edges(&self) -> EdgeIterator<Id, E> {
-        EdgeIterator{
-            inner: self.edges.iter()
+        EdgeIterator {
+            inner: self.edges.iter(),
         }
     }
 
@@ -168,6 +169,8 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         })
     }
 }
+
+impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> UndirectedGraph<'a> for MapGraph<Id, N, E> {}
 
 impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> KeyedGraph<'a> for MapGraph<Id, N, E> {
     // returns previous node data if there was any, deletes any existing edges at that id
@@ -222,7 +225,9 @@ impl<'a, Id: Copy + Eq + Hash, E: 'a> Iterator for EdgeIterator<'a, Id, E> {
     type Item = Edge<'a, Id, usize, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(&id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
+        self.inner
+            .next()
+            .map(|(&id, edge)| Edge::new(id, edge.u, edge.v, &edge.e))
     }
 }
 

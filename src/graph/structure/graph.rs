@@ -54,6 +54,8 @@ pub trait DirectedGraph<'a>: Graph<'a> {
     fn reverse_edge(&'a mut self, id: Self::EId) -> Option<()>;
 }
 
+pub trait UndirectedGraph<'a>: Graph<'a> {}
+
 pub trait MultiGraph<'a>: Graph<'a> {
     type MultiEdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
 
