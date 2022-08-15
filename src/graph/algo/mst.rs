@@ -93,7 +93,7 @@ where
         }
     }
 
-    pub fn path(&self, id: G::NId) -> Vec<Edge<'a, G::NId, G::EId, G::E>> {
+    pub fn ancestor_path(&self, id: G::NId) -> Vec<Edge<'a, G::NId, G::EId, G::E>> {
         let mut edges = Vec::new();
         let mut cur = id;
         while let Some(edge) = self.parent_edge(cur) {
