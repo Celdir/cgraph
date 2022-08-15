@@ -6,8 +6,6 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::iter;
-use std::ops::Index;
 
 // TODO: implement pooling for re-using deleted node and edge ids
 // alternative, just use hashmaps to store nodes and edges
@@ -29,7 +27,7 @@ pub struct MapGraph<Id, N, E> {
 }
 
 impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
-    fn new() -> MapGraph<Id, N, E> {
+    pub fn new() -> MapGraph<Id, N, E> {
         MapGraph {
             nodes: HashMap::new(),
             edges: HashMap::new(),
@@ -37,7 +35,7 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
             adj: HashMap::new(),
         }
     }
-    fn with_capacity(num_nodes: usize, num_edges: usize) -> MapGraph<Id, N, E> {
+    pub fn with_capacity(num_nodes: usize, num_edges: usize) -> MapGraph<Id, N, E> {
         MapGraph {
             nodes: HashMap::with_capacity(num_nodes),
             edges: HashMap::with_capacity(num_edges),
@@ -81,12 +79,12 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
-    fn insert_node(&mut self, node: N) -> Id {
+    fn insert_node(&mut self, _: N) -> Id {
         panic!("MapGraph nodes can only be inserted with put_node");
     }
 
     fn remove_node(&mut self, id: Id) -> Option<N> {
-        // self.clear_node(id);
+        self.clear_node(id);
         self.nodes.remove(&id)
     }
 
@@ -248,5 +246,39 @@ impl<'a, Id: Eq + Hash + Copy, N, E> Iterator for AdjIterator<'a, Id, N, E> {
             let node = Node::new(v, &self.nodes[&v]);
             (edge, node)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::structure::graph::{Graph, KeyedGraph};
+    use crate::graph::structure::mapgraph::MapGraph;
+
+    #[test]
+    fn puts_and_removes() {
+        // A --5-- B
+        // |       |
+        // 2       1
+        // |       |
+        // C --1-- D
+        let mut graph = MapGraph::new();
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        graph.remove_node("A").expect("node should exist");
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
     }
 }

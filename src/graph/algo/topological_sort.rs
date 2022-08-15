@@ -1,4 +1,3 @@
-use crate::graph::structure::edge::Edge;
 use crate::graph::structure::graph::DirectedGraph;
 use crate::graph::structure::node::Node;
 use std::collections::{HashMap, VecDeque};
@@ -71,7 +70,7 @@ mod tests {
             ],
         ));
 
-        let order: Option<Vec<_>> = topological_sort(&graph);;
+        let order: Option<Vec<_>> = topological_sort(&graph);
         assert!(order.is_none());
     }
 }

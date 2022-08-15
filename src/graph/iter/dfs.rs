@@ -1,7 +1,7 @@
 use crate::graph::structure::edge::Edge;
 use crate::graph::structure::graph::Graph;
 use crate::graph::structure::node::Node;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 pub fn dfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
     Dfs::new(graph, start)

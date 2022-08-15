@@ -5,7 +5,6 @@ use std::collections::hash_map;
 use std::collections::HashMap;
 use std::convert::From;
 use std::iter;
-use std::ops::Index;
 use std::slice;
 
 // TODO: implement pooling for re-using deleted node and edge ids
@@ -35,7 +34,7 @@ where
 }
 
 impl<N: Clone, E: Clone> StableVecGraph<N, E> {
-    fn new() -> StableVecGraph<N, E> {
+    pub fn new() -> StableVecGraph<N, E> {
         StableVecGraph {
             nodes: Vec::new(),
             nodes_len: 0,
@@ -46,7 +45,7 @@ impl<N: Clone, E: Clone> StableVecGraph<N, E> {
         }
     }
 
-    fn with_capacity(num_nodes: usize, num_edges: usize) -> StableVecGraph<N, E> {
+    pub fn with_capacity(num_nodes: usize, num_edges: usize) -> StableVecGraph<N, E> {
         StableVecGraph {
             nodes: Vec::with_capacity(num_nodes),
             nodes_len: 0,
@@ -200,7 +199,6 @@ where
 {
     fn out_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
-            u,
             nodes: &self.nodes,
             edges: &self.edges,
             iter: self.out_adj.get(u)?.iter(),
@@ -213,7 +211,6 @@ where
 
     fn in_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
-            u,
             nodes: &self.nodes,
             edges: &self.edges,
             iter: self.in_adj.get(u)?.iter(),
@@ -302,7 +299,6 @@ impl<N: Clone, E: Clone> From<StableVecGraph<N, E>> for (Vec<N>, Vec<(usize, usi
 }
 
 pub struct AdjIterator<'a, N, E> {
-    u: usize,
     nodes: &'a Vec<Option<N>>,
     edges: &'a Vec<Option<InternalEdge<E>>>,
     iter: hash_map::Iter<'a, usize, usize>,
@@ -354,5 +350,39 @@ impl<'a, E> Iterator for EdgeIterator<'a, E> {
                 return Some(Edge::new(id, edge.u, edge.v, &edge.e));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::structure::graph::Graph;
+    use crate::graph::structure::vecgraph::StableVecGraph;
+
+    #[test]
+    fn puts_and_removes() {
+        // A --5-> B
+        // |       |
+        // 2       1
+        // v       v
+        // C --1-> D
+        let mut graph = StableVecGraph::new();
+        graph.insert_node(()); // 0
+        graph.insert_node(()); // 1
+        graph.insert_node(()); // 2
+        graph.insert_node(()); // 3
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(0, 2, 2).expect("nodes should exist");
+        graph.insert_edge(2, 3, 1).expect("nodes should exist");
+        graph.insert_edge(1, 3, 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        graph.remove_node(0).expect("node should exist");
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
     }
 }
