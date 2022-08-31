@@ -127,7 +127,7 @@ mod tests {
         assert_eq!(d_edge.other("D"), "C");
         assert_eq!(d_edge.data(), &1);
 
-        let path_to_b = tree.path("B");
+        let path_to_b = tree.path("B").unwrap().edges;
         let ids: Vec<_> = path_to_b.iter().map(|edge| edge.origin()).collect();
         assert_eq!(ids, vec!["A", "C", "D"]);
     }
@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(e_edge.origin(), 1);
         assert_eq!(e_edge.data(), &1);
 
-        let path_to_e = tree.path(4);
+        let path_to_e = tree.path(4).unwrap().edges;
         let ids: Vec<_> = path_to_e.iter().map(|edge| edge.origin()).collect();
         assert_eq!(ids, vec![0, 1]);
 
