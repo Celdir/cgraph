@@ -1,5 +1,5 @@
 use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::{DirectedGraph, Graph, MultiGraph};
+use crate::graph::structure::graph::{DirectedGraph, Graph, MultiGraph, OrdinalGraph};
 use crate::graph::structure::node::Node;
 use std::collections::hash_map;
 use std::collections::HashMap;
@@ -98,15 +98,6 @@ where
         self.in_degree(u) + self.out_degree(u)
     }
 
-    fn insert_node(&mut self, node: N) -> usize {
-        let id = self.nodes.len();
-        self.nodes.push(Some(node));
-        self.nodes_len += 1;
-        self.out_adj.push(HashMap::new());
-        self.in_adj.push(HashMap::new());
-        id
-    }
-
     fn remove_node(&mut self, id: usize) -> Option<N> {
         self.clear_node(id);
         let node = self.nodes.remove(id)?;
@@ -192,6 +183,21 @@ where
     }
 }
 
+impl<'a, N, E> OrdinalGraph<'a> for StableVecGraph<N, E>
+where
+    N: 'a + Clone,
+    E: 'a + Clone,
+{
+    fn insert_node(&mut self, node: N) -> usize {
+        let id = self.nodes.len();
+        self.nodes.push(Some(node));
+        self.nodes_len += 1;
+        self.out_adj.push(HashMap::new());
+        self.in_adj.push(HashMap::new());
+        id
+    }
+}
+
 impl<'a, N, E> DirectedGraph<'a> for StableVecGraph<N, E>
 where
     N: 'a + Clone,
@@ -222,9 +228,7 @@ where
     }
 
     fn reverse(&self) -> StableVecGraph<N, E> {
-        let copy: StableVecGraph<N, E> = self.clone();
-        let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
-
+        let copy: StableVecGraph<N, E> = self.clone(); let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
         let mut reverse_graph = StableVecGraph::with_capacity(nodes.len(), edges.len());
         for n in nodes {
             reverse_graph.insert_node(n);

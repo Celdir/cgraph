@@ -79,10 +79,6 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
-    fn insert_node(&mut self, _: N) -> Id {
-        panic!("MapGraph nodes can only be inserted with put_node");
-    }
-
     fn remove_node(&mut self, id: Id) -> Option<N> {
         self.clear_node(id);
         self.nodes.remove(&id)

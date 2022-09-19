@@ -24,7 +24,6 @@ pub trait Graph<'a> {
     fn node_data(&'a self, id: Self::NId) -> Option<&Self::N>;
     fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N>;
     fn degree(&'a self, u: Self::NId) -> usize;
-    fn insert_node(&mut self, node: Self::N) -> Self::NId;
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
     fn clear_node(&mut self, id: Self::NId) -> Option<()>;
 
@@ -41,6 +40,14 @@ pub trait Graph<'a> {
     fn edges(&'a self) -> Self::EdgeIterator;
     // Returns out edges for directed graph or all edges for undirected
     fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
+}
+
+pub trait OrdinalGraph<'a>: Graph<'a> {
+    fn insert_node(&mut self, node: Self::N) -> Self::NId;
+}
+
+pub trait KeyedGraph<'a>: Graph<'a> {
+    fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
 pub trait DirectedGraph<'a>: Graph<'a> {
@@ -60,8 +67,4 @@ pub trait MultiGraph<'a>: Graph<'a> {
     type MultiEdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
 
     fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator>;
-}
-
-pub trait KeyedGraph<'a>: Graph<'a> {
-    fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
