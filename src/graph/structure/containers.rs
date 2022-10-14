@@ -3,6 +3,9 @@ use crate::graph::structure::node::Node;
 use std::hash::Hash;
 use std::iter::Iterator;
 
+pub trait Keyed {}
+pub trait Ordinal {}
+
 pub trait NodeContainer<'a> {
     type NId: Eq + Hash + Copy;
     type N: 'a;
@@ -21,11 +24,11 @@ pub trait NodeContainer<'a> {
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
 }
 
-pub trait OrdinalNodeContainer<'a>: NodeContainer<'a> {
+pub trait OrdinalNodeContainer<'a>: NodeContainer<'a> + Ordinal {
     fn insert_node(&mut self, node: Self::N) -> Self::NId;
 }
 
-pub trait KeyedNodeContainer<'a>: NodeContainer<'a> {
+pub trait KeyedNodeContainer<'a>: NodeContainer<'a> + Keyed {
     fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
@@ -76,6 +79,8 @@ where
         self.nodes.remove(&id)
     }
 }
+
+impl<Id, N> Keyed for NodeMap<Id, N> {}
 
 impl<'a, Id, N> KeyedNodeContainer<'a> for NodeMap<Id, N>
 where
@@ -210,7 +215,7 @@ pub trait AdjContainer<'a> {
     type NId: Eq + Hash + Copy;
     type EId: Eq + Hash + Copy;
 
-    type AdjIterator: Iterator<Item = (Self::NId, Self::EId)>;
+    type AdjIterator: Iterator<Item = (Self::EId, Self::NId)>;
 
     fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
     fn between(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::EId>;
@@ -231,8 +236,8 @@ pub trait MultiAdjContainer<'a>: AdjContainer<'a> {
     fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator>;
 }
 
-pub trait OrdinalAdjContainer<'a>: AdjContainer<'a> {}
-pub trait KeyedAdjContainer<'a>: AdjContainer<'a> {}
+pub trait OrdinalAdjContainer<'a>: AdjContainer<'a> + Ordinal {}
+pub trait KeyedAdjContainer<'a>: AdjContainer<'a> + Keyed {}
 
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
@@ -263,7 +268,6 @@ where
         self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
-
     fn insert_node(&mut self, u: Self::NId) {
         self.adj.insert(u, HashMap::new());
     }
@@ -292,6 +296,8 @@ where
     }
 }
 
+impl<NId, EId> Keyed for AdjMap<NId, EId> {}
+
 impl<'a, NId, EId> KeyedAdjContainer<'a> for AdjMap<NId, EId>
 where
     NId: 'a + Eq + Hash + Copy,
@@ -311,7 +317,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(&v, &id)| {
-            (v, id)
+            (id, v)
         })
     }
 }
@@ -319,19 +325,127 @@ where
 use std::marker::PhantomData;
 
 // TODO: move the 'a and complex where statement to the impl instead of the struct itself
-pub struct UnGraph<'a, NC, EC, AC>
+pub struct UnGraph<NC, EC, AC> {
+    nodes: NC,
+    edges: EC,
+    adj: AC,
+}
+
+impl<'a, NC, EC, AC> Graph<'a> for UnGraph<NC, EC, AC> 
 where
     NC: NodeContainer<'a>,
     EC: EdgeContainer<'a, NId=NC::NId>,
     AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
 {
-    nodes: NC,
-    edges: EC,
-    adj: AC,
+    type N = NC::N;
+    type NId = NC::NId;
+    type E = EC::E;
+    type EId = EC::EId;
 
-    phantom: PhantomData<&'a NC>, // this is because the struct doesn't store anything directly
-                                  // using lifetime 'a, but we need the lifetime to use in the
-                                  // where clause
+    type NodeIterator = NC::NodeIterator;
+    type EdgeIterator = EC::EdgeIterator;
+    type AdjIterator = DGAdjIterator<'a, NC, EC, AC>;
+
+    fn len(&self) -> (usize, usize) {
+        (self.nodes.len(), self.edges.len())
+    }
+
+    fn contains_node(&self, id: Self::NId) -> bool {
+        self.nodes.contains_node(id)
+    }
+
+    fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
+        self.nodes.node(id)
+    }
+
+    fn node_data(&self, id: Self::NId) -> Option<&Self::N> {
+        self.nodes.node_data(id)
+    }
+
+    fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N> {
+        self.nodes.node_data_mut(id)
+    }
+
+    fn degree(&self, u: Self::NId) -> usize {
+        self.adj.degree(u)
+    }
+
+    fn remove_node(&mut self, id: Self::NId) -> Option<Self::N> {
+        self.clear_node(id);
+        self.adj.remove_node(id);
+        self.nodes.remove_node(id)
+    }
+
+    fn clear_node(&mut self, u: Self::NId) -> Option<()> {
+        if !self.contains_node(u) {
+            return None;
+        }
+        let adj_ids: Vec<_> = self.adj(u).collect();
+        self.adj.clear_node(u);
+        for (edge_id, v) in adj_ids {
+            self.adj.remove_edge(v, u, edge_id);
+            self.edges.remove_edge(edge_id).expect("Edge should be present");
+        }
+        Some(())
+    }
+
+    fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool {
+        self.adj.contains_edge(u, v)
+    }
+
+    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+        self.edges.edge(id)
+    }
+
+    fn between(&'a self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+        let edge_id = self.adj.between(u, v)?;
+        self.edges.edge(edge_id)
+    }
+
+    fn edge_data(&'a self, id: Self::EId) -> Option<&Self::E> {
+        self.edges.edge_data(id)
+    }
+
+    fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E> {
+        self.edges.edge_data_mut(id)
+    }
+
+    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
+        if !self.contains_node(u) || !self.contains_node(v) {
+            return None;
+        }
+
+        let edge_id = self.edges.insert_edge(u, v, edge)?;
+        self.adj.insert_edge(u, v, edge_id);
+        self.adj.insert_edge(v, u, edge_id);
+        Some(edge_id)
+    }
+
+    fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
+        let edge = self.edge(id)?;
+        let (u, v) = (edge.u(), edge.v());
+        self.adj.remove_edge(u, v, id);
+        self.adj.remove_edge(v, u, id);
+        self.edges.remove_edge(id);
+    }
+}
+
+pub struct DGAdjIterator<'a, NC, EC, AC> {
+    graph: &'a UnGraph<NC, EC, AC>,
+    inner: AC::AdjIterator,
+}
+
+impl<'a, NC, EC, AC> Iterator for DGAdjIterator<'a, NC, EC, AC> {
+    type Item = (
+        Edge<'a, NC::NId, EC::EId, EC::E>,
+        Node<'a, NC::NId, NC::N>,
+    );
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(&id, &v)| {
+            (self.graph.edges.edge(id), self.graph.nodes.node(v))
+        })
+    }
 }
 
 // impl UnGraph where AC: Ordinal, NC: Ordinal
