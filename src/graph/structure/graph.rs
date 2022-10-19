@@ -25,7 +25,7 @@ pub trait Graph<'a> {
     fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N>;
     fn degree(&self, u: Self::NId) -> usize;
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
-    fn clear_node(&'a mut self, id: Self::NId) -> Option<()>;
+    fn clear_node(&mut self, id: Self::NId) -> Option<()>;
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;

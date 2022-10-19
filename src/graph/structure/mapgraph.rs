@@ -1,4 +1,4 @@
-/*use crate::graph::structure::edge::Edge;
+use crate::graph::structure::edge::Edge;
 use crate::graph::structure::graph::{Graph, KeyedGraph, UndirectedGraph};
 use crate::graph::structure::node::Node;
 use std::collections::hash_map::Iter;
@@ -63,15 +63,15 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         self.nodes.contains_key(&id)
     }
 
-    fn node(&self, id: Id) -> Option<Node<'a, Id, N>> {
+    fn node(&self, id: Id) -> Option<Node<Id, N>> {
         self.nodes.get(&id).map(|n| Node::new(id, n))
     }
 
-    fn node_data(&self, id: Id) -> Option<&'a N> {
+    fn node_data(&self, id: Id) -> Option<&N> {
         self.nodes.get(&id)
     }
 
-    fn node_data_mut(&mut self, id: Id) -> Option<&'a mut N> {
+    fn node_data_mut(&mut self, id: Id) -> Option<&mut N> {
         self.nodes.get_mut(&id)
     }
 
@@ -96,22 +96,22 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         self.adj.get(&u).is_some() && self.adj[&u].contains_key(&v)
     }
 
-    fn edge(&self, id: usize) -> Option<Edge<'a, Id, usize, E>> {
+    fn edge(&self, id: usize) -> Option<Edge<Id, usize, E>> {
         let edge = self.edges.get(&id)?;
         Some(Edge::new(id, edge.u, edge.v, &edge.e))
     }
 
-    fn between(&self, u: Id, v: Id) -> Option<Edge<'a, Id, usize, E>> {
+    fn between(&self, u: Id, v: Id) -> Option<Edge<Id, usize, E>> {
         let &edge_id = self.adj.get(&u)?.get(&v)?;
         let edge = self.edges.get(&edge_id)?;
         Some(Edge::new(edge_id, u, v, &edge.e))
     }
 
-    fn edge_data(&self, id: usize) -> Option<&'a E> {
+    fn edge_data(&self, id: usize) -> Option<&E> {
         Some(&self.edges.get(&id).as_ref()?.e)
     }
 
-    fn edge_data_mut(&mut self, id: usize) -> Option<&'a mut E> {
+    fn edge_data_mut(&mut self, id: usize) -> Option<&mut E> {
         Some(&mut self.edges.get_mut(&id)?.e)
     }
 
@@ -142,19 +142,19 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
         Some(internal_edge.e)
     }
 
-    fn nodes(&self) -> NodeIterator<'a, Id, N> {
+    fn nodes(&self) -> NodeIterator<Id, N> {
         NodeIterator {
             inner: self.nodes.iter(),
         }
     }
 
-    fn edges(&self) -> EdgeIterator<'a, Id, E> {
+    fn edges(&self) -> EdgeIterator<Id, E> {
         EdgeIterator {
             inner: self.edges.iter(),
         }
     }
 
-    fn adj(&self, u: Id) -> Option<AdjIterator<'a, Id, N, E>> {
+    fn adj(&self, u: Id) -> Option<AdjIterator<Id, N, E>> {
         Some(AdjIterator {
             u,
             nodes: &self.nodes,
@@ -277,4 +277,4 @@ mod tests {
         assert_eq!(n2, 3);
         assert_eq!(e2, 2);
     }
-}*/
+}

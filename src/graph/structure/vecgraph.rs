@@ -1,4 +1,4 @@
-/*use crate::graph::structure::edge::Edge;
+use crate::graph::structure::edge::Edge;
 use crate::graph::structure::graph::{DirectedGraph, Graph, MultiGraph, OrdinalGraph};
 use crate::graph::structure::node::Node;
 use std::collections::hash_map;
@@ -254,7 +254,7 @@ where
 {
     type MultiEdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
 
-    fn between_multi(&self, u: usize, v: usize) -> Option<Self::MultiEdgeIterator> {
+    fn between_multi(&'a self, u: usize, v: usize) -> Option<Self::MultiEdgeIterator> {
         let &edge_id = self.out_adj.get(u)?.get(&v)?;
         match self.edges.get(edge_id) {
             Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),
@@ -389,4 +389,4 @@ mod tests {
         assert_eq!(n2, 3);
         assert_eq!(e2, 2);
     }
-}*/
+}
