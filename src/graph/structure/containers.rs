@@ -253,7 +253,6 @@ where
 
     type AdjIterator = AdjIterator<'a, NId, EId>;
 
-
     fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator> {
         Some(AdjIterator{
             inner: self.adj.get(&u)?.iter()
@@ -313,7 +312,7 @@ where
     NId: Eq + Hash + Copy,
     EId: Eq + Hash + Copy,
 {
-    type Item = (NId, EId);
+    type Item = (EId, NId);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(&v, &id)| {
@@ -323,6 +322,7 @@ where
 }
 
 use std::marker::PhantomData;
+use crate::graph::structure::graph::Graph;
 
 // TODO: move the 'a and complex where statement to the impl instead of the struct itself
 pub struct UnGraph<NC, EC, AC> {
@@ -333,9 +333,9 @@ pub struct UnGraph<NC, EC, AC> {
 
 impl<'a, NC, EC, AC> Graph<'a> for UnGraph<NC, EC, AC> 
 where
-    NC: NodeContainer<'a>,
-    EC: EdgeContainer<'a, NId=NC::NId>,
-    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+    NC: 'a + NodeContainer<'a>,
+    EC: 'a + EdgeContainer<'a, NId=NC::NId>,
+    AC: 'a + AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
 {
     type N = NC::N;
     type NId = NC::NId;
@@ -350,15 +350,15 @@ where
         (self.nodes.len(), self.edges.len())
     }
 
-    fn contains_node(&self, id: Self::NId) -> bool {
+    fn contains_node(&'a self, id: Self::NId) -> bool {
         self.nodes.contains_node(id)
     }
 
-    fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
+    fn node(&'a self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
         self.nodes.node(id)
     }
 
-    fn node_data(&self, id: Self::NId) -> Option<&Self::N> {
+    fn node_data(&'a self, id: Self::NId) -> Option<&Self::N> {
         self.nodes.node_data(id)
     }
 
@@ -366,7 +366,7 @@ where
         self.nodes.node_data_mut(id)
     }
 
-    fn degree(&self, u: Self::NId) -> usize {
+    fn degree(&'a self, u: Self::NId) -> usize {
         self.adj.degree(u)
     }
 
@@ -377,10 +377,7 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Option<()> {
-        if !self.contains_node(u) {
-            return None;
-        }
-        let adj_ids: Vec<_> = self.adj(u).collect();
+        let adj_ids: Vec<_> = self.adj.adj(u)?.collect();
         self.adj.clear_node(u);
         for (edge_id, v) in adj_ids {
             self.adj.remove_edge(v, u, edge_id);
@@ -422,28 +419,53 @@ where
     }
 
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
-        let edge = self.edge(id)?;
+        let edge = self.edges.edge(id)?;
         let (u, v) = (edge.u(), edge.v());
         self.adj.remove_edge(u, v, id);
         self.adj.remove_edge(v, u, id);
-        self.edges.remove_edge(id);
+        self.edges.remove_edge(id)
+    }
+
+    fn nodes(&'a self) -> Self::NodeIterator {
+        self.nodes.nodes()
+    }
+
+    fn edges(&'a self) -> Self::EdgeIterator {
+        self.edges.edges()
+    }
+
+    fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator> {
+        Some(DGAdjIterator{
+            graph: &self,
+            inner: self.adj.adj(u)?,
+        })
     }
 }
 
-pub struct DGAdjIterator<'a, NC, EC, AC> {
+pub struct DGAdjIterator<'a, NC, EC, AC>
+where
+    NC: NodeContainer<'a>,
+    EC: EdgeContainer<'a, NId=NC::NId>,
+    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+{
     graph: &'a UnGraph<NC, EC, AC>,
     inner: AC::AdjIterator,
 }
 
-impl<'a, NC, EC, AC> Iterator for DGAdjIterator<'a, NC, EC, AC> {
+impl<'a, NC, EC, AC> Iterator for DGAdjIterator<'a, NC, EC, AC>
+where
+    NC: NodeContainer<'a>,
+    EC: EdgeContainer<'a, NId=NC::NId>,
+    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+{
     type Item = (
         Edge<'a, NC::NId, EC::EId, EC::E>,
         Node<'a, NC::NId, NC::N>,
     );
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(&id, &v)| {
-            (self.graph.edges.edge(id), self.graph.nodes.node(v))
+        self.inner.next().map(|(id, v)| {
+            (self.graph.edges.edge(id).expect("id from adj iterator must refer to real edge"), self.graph.nodes.node(v).expect("id from adj iterator must refer to real edge"))
         })
     }
 }
