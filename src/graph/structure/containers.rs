@@ -16,9 +16,9 @@ pub trait NodeContainer<'a> {
 
     fn len(&self) -> usize;
 
-    fn contains_node(&'a self, id: Self::NId) -> bool;
-    fn node(&'a self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
-    fn node_data(&'a self, id: Self::NId) -> Option<&Self::N>;
+    fn contains_node(&self, id: Self::NId) -> bool;
+    fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
+    fn node_data(&self, id: Self::NId) -> Option<&Self::N>;
     fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N>;
 
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
@@ -29,7 +29,7 @@ pub trait OrdinalNodeContainer<'a>: NodeContainer<'a> + Ordinal {
 }
 
 pub trait KeyedNodeContainer<'a>: NodeContainer<'a> + Keyed {
-    fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
+    fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
 use std::collections::HashMap;
@@ -49,7 +49,7 @@ where
 
     type NodeIterator = NodeIterator<'a, Id, N>;
 
-    fn nodes(&self) -> NodeIterator<Id, N> {
+    fn nodes(&'a self) -> Self::NodeIterator {
         NodeIterator {
             inner: self.nodes.iter(),
         }
@@ -119,8 +119,8 @@ pub trait EdgeContainer<'a> {
 
     fn len(&self) -> usize;
 
-    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn edge_data(&'a self, id: Self::EId) -> Option<&Self::E>;
+    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
+    fn edge_data(&self, id: Self::EId) -> Option<&Self::E>;
     fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E>;
 
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
@@ -158,7 +158,7 @@ where
         self.edges_len
     }
 
-    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         match self.edges.get(id) {
             Some(Some(edge)) => Some(Edge::new(id, edge.u, edge.v, &edge.e)),
             _ => None,
@@ -212,20 +212,20 @@ where
 }
 
 pub trait AdjContainer<'a> {
-    type NId: Eq + Hash + Copy;
-    type EId: Eq + Hash + Copy;
+    type NId: 'a + Eq + Hash + Copy;
+    type EId: 'a + Eq + Hash + Copy;
 
     type AdjIterator: Iterator<Item = (Self::EId, Self::NId)>;
 
     fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
-    fn between(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::EId>;
-    fn degree(&'a self, u: Self::NId) -> usize;
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Self::EId>;
+    fn degree(&self, u: Self::NId) -> usize;
 
     fn insert_node(&mut self, u: Self::NId);
     fn remove_node(&mut self, u: Self::NId);
     fn clear_node(&mut self, u: Self::NId);
 
-    fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool;
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);
     fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);
 }
@@ -259,11 +259,11 @@ where
         })
     }
 
-    fn between(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::EId> {
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Self::EId> {
         Some(self.adj.get(&u)?.get(&v)?.clone())
     }
 
-    fn degree(&'a self, u: Self::NId) -> usize {
+    fn degree(&self, u: Self::NId) -> usize {
         self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
@@ -279,7 +279,7 @@ where
         self.adj.get_mut(&u).unwrap().clear();
     }
 
-    fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool {
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
         self.adj.get(&u).is_some() && self.adj[&u].contains_key(&v)
     }
 
@@ -309,8 +309,8 @@ pub struct AdjIterator<'a, NId, EId> {
 
 impl<'a, NId, EId> Iterator for AdjIterator<'a, NId, EId>
 where
-    NId: Eq + Hash + Copy,
-    EId: Eq + Hash + Copy,
+    NId: 'a + Eq + Hash + Copy,
+    EId: 'a + Eq + Hash + Copy,
 {
     type Item = (EId, NId);
 
@@ -350,15 +350,15 @@ where
         (self.nodes.len(), self.edges.len())
     }
 
-    fn contains_node(&'a self, id: Self::NId) -> bool {
+    fn contains_node(&self, id: Self::NId) -> bool {
         self.nodes.contains_node(id)
     }
 
-    fn node(&'a self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
+    fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
         self.nodes.node(id)
     }
 
-    fn node_data(&'a self, id: Self::NId) -> Option<&Self::N> {
+    fn node_data(&self, id: Self::NId) -> Option<&Self::N> {
         self.nodes.node_data(id)
     }
 
@@ -366,7 +366,7 @@ where
         self.nodes.node_data_mut(id)
     }
 
-    fn degree(&'a self, u: Self::NId) -> usize {
+    fn degree(&self, u: Self::NId) -> usize {
         self.adj.degree(u)
     }
 
@@ -386,20 +386,20 @@ where
         Some(())
     }
 
-    fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool {
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
         self.adj.contains_edge(u, v)
     }
 
-    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         self.edges.edge(id)
     }
 
-    fn between(&'a self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         let edge_id = self.adj.between(u, v)?;
         self.edges.edge(edge_id)
     }
 
-    fn edge_data(&'a self, id: Self::EId) -> Option<&Self::E> {
+    fn edge_data(&self, id: Self::EId) -> Option<&Self::E> {
         self.edges.edge_data(id)
     }
 

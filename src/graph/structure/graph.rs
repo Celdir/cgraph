@@ -17,21 +17,21 @@ pub trait Graph<'a> {
         ),
     >;
 
-    fn len(&'a self) -> (usize, usize);
+    fn len(&self) -> (usize, usize);
 
-    fn contains_node(&'a self, id: Self::NId) -> bool;
-    fn node(&'a self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
-    fn node_data(&'a self, id: Self::NId) -> Option<&Self::N>;
+    fn contains_node(&self, id: Self::NId) -> bool;
+    fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
+    fn node_data(&self, id: Self::NId) -> Option<&Self::N>;
     fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N>;
-    fn degree(&'a self, u: Self::NId) -> usize;
+    fn degree(&self, u: Self::NId) -> usize;
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
-    fn clear_node(&mut self, id: Self::NId) -> Option<()>;
+    fn clear_node(&'a mut self, id: Self::NId) -> Option<()>;
 
-    fn contains_edge(&'a self, u: Self::NId, v: Self::NId) -> bool;
-    fn edge(&'a self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn between(&'a self, u: Self::NId, v: Self::NId)
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
+    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
+    fn between(&self, u: Self::NId, v: Self::NId)
         -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn edge_data(&'a self, id: Self::EId) -> Option<&Self::E>;
+    fn edge_data(&self, id: Self::EId) -> Option<&Self::E>;
     fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E>;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;
@@ -47,18 +47,18 @@ pub trait OrdinalGraph<'a>: Graph<'a> {
 }
 
 pub trait KeyedGraph<'a>: Graph<'a> {
-    fn put_node(&'a mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
+    fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
 pub trait DirectedGraph<'a>: Graph<'a> {
     fn out_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
-    fn out_degree(&'a self, u: Self::NId) -> usize;
+    fn out_degree(&self, u: Self::NId) -> usize;
 
     fn in_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
-    fn in_degree(&'a self, u: Self::NId) -> usize;
+    fn in_degree(&self, u: Self::NId) -> usize;
 
-    fn reverse(&'a self) -> Self;
-    fn reverse_edge(&'a mut self, id: Self::EId) -> Option<()>;
+    fn reverse(&self) -> Self;
+    fn reverse_edge(&mut self, id: Self::EId) -> Option<()>;
 }
 
 pub trait UndirectedGraph<'a>: Graph<'a> {}
