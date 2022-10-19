@@ -359,7 +359,7 @@ impl<'a, E> Iterator for EdgeIterator<'a, E> {
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::structure::graph::Graph;
+    use crate::graph::structure::graph::{Graph, OrdinalGraph};
     use crate::graph::structure::vecgraph::StableVecGraph;
 
     #[test]
