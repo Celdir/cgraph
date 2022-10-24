@@ -228,7 +228,8 @@ where
     }
 
     fn reverse(&self) -> StableVecGraph<N, E> {
-        let copy: StableVecGraph<N, E> = self.clone(); let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
+        let copy: StableVecGraph<N, E> = self.clone();
+        let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
         let mut reverse_graph = StableVecGraph::with_capacity(nodes.len(), edges.len());
         for n in nodes {
             reverse_graph.insert_node(n);

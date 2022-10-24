@@ -8,14 +8,20 @@ pub trait Graph {
     type E;
     type EId: Eq + Hash + Copy;
 
-    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>> where Self: 'a;
-    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>> where Self: 'a;
+    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
+    where
+        Self: 'a;
+    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
+    where
+        Self: 'a;
     type AdjIterator<'a>: Iterator<
         Item = (
             Edge<'a, Self::NId, Self::EId, Self::E>,
             Node<'a, Self::NId, Self::N>,
         ),
-    > where Self: 'a;
+    >
+    where
+        Self: 'a;
 
     fn len(&self) -> (usize, usize);
 
@@ -29,8 +35,7 @@ pub trait Graph {
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn between(&self, u: Self::NId, v: Self::NId)
-        -> Option<Edge<Self::NId, Self::EId, Self::E>>;
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn edge_data(&self, id: Self::EId) -> Option<&Self::E>;
     fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E>;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
@@ -64,7 +69,13 @@ pub trait DirectedGraph: Graph {
 pub trait UndirectedGraph: Graph {}
 
 pub trait MultiGraph: Graph {
-    type MultiEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>> where Self: 'a;
+    type MultiEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
+    where
+        Self: 'a;
 
-    fn between_multi<'a>(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator<'a>>;
+    fn between_multi<'a>(
+        &'a self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<Self::MultiEdgeIterator<'a>>;
 }

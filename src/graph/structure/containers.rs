@@ -1,4 +1,4 @@
-/*use crate::graph::structure::edge::Edge;
+use crate::graph::structure::edge::Edge;
 use crate::graph::structure::node::Node;
 use std::hash::Hash;
 use std::iter::Iterator;
@@ -6,13 +6,15 @@ use std::iter::Iterator;
 pub trait Keyed {}
 pub trait Ordinal {}
 
-pub trait NodeContainer<'a> {
+pub trait NodeContainer {
     type NId: Eq + Hash + Copy;
-    type N: 'a;
+    type N;
 
-    type NodeIterator: Iterator<Item = Node<'a, Self::NId, Self::N>>;
+    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
+    where
+        Self: 'a;
 
-    fn nodes(&'a self) -> Self::NodeIterator;
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
 
     fn len(&self) -> usize;
 
@@ -24,32 +26,31 @@ pub trait NodeContainer<'a> {
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
 }
 
-pub trait OrdinalNodeContainer<'a>: NodeContainer<'a> + Ordinal {
+pub trait OrdinalNodeContainer: NodeContainer + Ordinal {
     fn insert_node(&mut self, node: Self::N) -> Self::NId;
 }
 
-pub trait KeyedNodeContainer<'a>: NodeContainer<'a> + Keyed {
+pub trait KeyedNodeContainer: NodeContainer + Keyed {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
-use std::collections::HashMap;
 use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 
 pub struct NodeMap<Id, N> {
-    nodes: HashMap<Id, N>
+    nodes: HashMap<Id, N>,
 }
 
-impl<'a, Id, N> NodeContainer<'a> for NodeMap<Id, N>
+impl<Id, N> NodeContainer for NodeMap<Id, N>
 where
-    Id: 'a + Eq + Hash + Copy,
-    N: 'a,
+    Id: Eq + Hash + Copy,
 {
     type NId = Id;
     type N = N;
 
-    type NodeIterator = NodeIterator<'a, Id, N>;
+    type NodeIterator<'a> = NodeIterator<'a, Id, N> where Self: 'a;
 
-    fn nodes(&'a self) -> Self::NodeIterator {
+    fn nodes(&self) -> NodeIterator<Id, N> {
         NodeIterator {
             inner: self.nodes.iter(),
         }
@@ -82,10 +83,9 @@ where
 
 impl<Id, N> Keyed for NodeMap<Id, N> {}
 
-impl<'a, Id, N> KeyedNodeContainer<'a> for NodeMap<Id, N>
+impl<Id, N> KeyedNodeContainer for NodeMap<Id, N>
 where
-    Id: 'a + Eq + Hash + Copy,
-    N: 'a,
+    Id: Eq + Hash + Copy,
 {
     fn put_node(&mut self, id: Id, node: N) -> Option<N> {
         let previous = self.remove_node(id);
@@ -99,8 +99,7 @@ pub struct NodeIterator<'a, Id, N> {
     inner: Iter<'a, Id, N>,
 }
 
-impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N> 
-{
+impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N> {
     type Item = Node<'a, Id, N>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -108,14 +107,16 @@ impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N>
     }
 }
 
-pub trait EdgeContainer<'a> {
+pub trait EdgeContainer {
     type NId: Eq + Hash + Copy;
-    type E: 'a;
+    type E;
     type EId: Eq + Hash + Copy;
 
-    type EdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
+    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
+    where
+        Self: 'a;
 
-    fn edges(&'a self) -> Self::EdgeIterator;
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
 
     fn len(&self) -> usize;
 
@@ -137,18 +138,17 @@ pub struct EdgeStableVec<NId, E> {
     edges_len: usize,
 }
 
-impl<'a, NId, E> EdgeContainer<'a> for EdgeStableVec<NId, E>
+impl<NId, E> EdgeContainer for EdgeStableVec<NId, E>
 where
-    NId: 'a + Eq + Hash + Copy,
-    E: 'a,
+    NId: Eq + Hash + Copy,
 {
     type NId = NId;
     type E = E;
     type EId = usize;
 
-    type EdgeIterator = EdgeIterator<'a, NId, E>;
+    type EdgeIterator<'a> = EdgeIterator<'a, NId, E> where Self: 'a;
 
-    fn edges(&'a self) -> Self::EdgeIterator {
+    fn edges(&self) -> EdgeIterator<NId, E> {
         EdgeIterator {
             inner: self.edges.iter().enumerate(),
         }
@@ -211,13 +211,15 @@ where
     }
 }
 
-pub trait AdjContainer<'a> {
-    type NId: 'a + Eq + Hash + Copy;
-    type EId: 'a + Eq + Hash + Copy;
+pub trait AdjContainer {
+    type NId: Eq + Hash + Copy;
+    type EId: Eq + Hash + Copy;
 
-    type AdjIterator: Iterator<Item = (Self::EId, Self::NId)>;
+    type AdjIterator<'a>: Iterator<Item = (Self::EId, Self::NId)>
+    where
+        Self: 'a;
 
-    fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Self::EId>;
     fn degree(&self, u: Self::NId) -> usize;
 
@@ -230,32 +232,38 @@ pub trait AdjContainer<'a> {
     fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);
 }
 
-pub trait MultiAdjContainer<'a>: AdjContainer<'a> {
-    type MultiEdgeIterator: Iterator<Item = (Self::NId, Self::EId)>;
+pub trait MultiAdjContainer: AdjContainer {
+    type MultiEdgeIterator<'a>: Iterator<Item = (Self::NId, Self::EId)>
+    where
+        Self: 'a;
 
-    fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator>;
+    fn between_multi<'a>(
+        &'a self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<Self::MultiEdgeIterator<'a>>;
 }
 
-pub trait OrdinalAdjContainer<'a>: AdjContainer<'a> + Ordinal {}
-pub trait KeyedAdjContainer<'a>: AdjContainer<'a> + Keyed {}
+pub trait OrdinalAdjContainer: AdjContainer + Ordinal {}
+pub trait KeyedAdjContainer: AdjContainer + Keyed {}
 
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
 }
 
-impl<'a, NId, EId> AdjContainer<'a> for AdjMap<NId, EId>
+impl<NId, EId> AdjContainer for AdjMap<NId, EId>
 where
-    NId: 'a + Eq + Hash + Copy,
-    EId: 'a + Eq + Hash + Copy,
+    NId: Eq + Hash + Copy,
+    EId: Eq + Hash + Copy,
 {
     type NId = NId;
     type EId = EId;
 
-    type AdjIterator = AdjIterator<'a, NId, EId>;
+    type AdjIterator<'a> = AdjIterator<'a, NId, EId> where Self: 'a;
 
-    fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator> {
-        Some(AdjIterator{
-            inner: self.adj.get(&u)?.iter()
+    fn adj(&self, u: Self::NId) -> Option<AdjIterator<NId, EId>> {
+        Some(AdjIterator {
+            inner: self.adj.get(&u)?.iter(),
         })
     }
 
@@ -288,20 +296,18 @@ where
     }
 
     fn remove_edge(&mut self, u: Self::NId, v: Self::NId, _edge_id: Self::EId) {
-        self.adj
-            .get_mut(&u)
-            .unwrap()
-            .remove(&v);
+        self.adj.get_mut(&u).unwrap().remove(&v);
     }
 }
 
 impl<NId, EId> Keyed for AdjMap<NId, EId> {}
 
-impl<'a, NId, EId> KeyedAdjContainer<'a> for AdjMap<NId, EId>
+impl<NId, EId> KeyedAdjContainer for AdjMap<NId, EId>
 where
-    NId: 'a + Eq + Hash + Copy,
-    EId: 'a + Eq + Hash + Copy,
-{}
+    NId: Eq + Hash + Copy,
+    EId: Eq + Hash + Copy,
+{
+}
 
 pub struct AdjIterator<'a, NId, EId> {
     inner: Iter<'a, NId, EId>,
@@ -315,36 +321,32 @@ where
     type Item = (EId, NId);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(&v, &id)| {
-            (id, v)
-        })
+        self.inner.next().map(|(&v, &id)| (id, v))
     }
 }
 
-use std::marker::PhantomData;
 use crate::graph::structure::graph::Graph;
 
-// TODO: move the 'a and complex where statement to the impl instead of the struct itself
 pub struct UnGraph<NC, EC, AC> {
     nodes: NC,
     edges: EC,
     adj: AC,
 }
 
-impl<'a, NC, EC, AC> Graph<'a> for UnGraph<NC, EC, AC> 
+impl<NC, EC, AC> Graph for UnGraph<NC, EC, AC>
 where
-    NC: 'a + NodeContainer<'a>,
-    EC: 'a + EdgeContainer<'a, NId=NC::NId>,
-    AC: 'a + AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
 {
     type N = NC::N;
     type NId = NC::NId;
     type E = EC::E;
     type EId = EC::EId;
 
-    type NodeIterator = NC::NodeIterator;
-    type EdgeIterator = EC::EdgeIterator;
-    type AdjIterator = DGAdjIterator<'a, NC, EC, AC>;
+    type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
+    type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
+    type AdjIterator<'a> = DGAdjIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
@@ -381,7 +383,9 @@ where
         self.adj.clear_node(u);
         for (edge_id, v) in adj_ids {
             self.adj.remove_edge(v, u, edge_id);
-            self.edges.remove_edge(edge_id).expect("Edge should be present");
+            self.edges
+                .remove_edge(edge_id)
+                .expect("Edge should be present");
         }
         Some(())
     }
@@ -426,16 +430,16 @@ where
         self.edges.remove_edge(id)
     }
 
-    fn nodes(&'a self) -> Self::NodeIterator {
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
         self.nodes.nodes()
     }
 
-    fn edges(&'a self) -> Self::EdgeIterator {
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
         self.edges.edges()
     }
 
-    fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator> {
-        Some(DGAdjIterator{
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        Some(DGAdjIterator {
             graph: &self,
             inner: self.adj.adj(u)?,
         })
@@ -444,49 +448,51 @@ where
 
 pub struct DGAdjIterator<'a, NC, EC, AC>
 where
-    NC: NodeContainer<'a>,
-    EC: EdgeContainer<'a, NId=NC::NId>,
-    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
 {
     graph: &'a UnGraph<NC, EC, AC>,
-    inner: AC::AdjIterator,
+    inner: AC::AdjIterator<'a>,
 }
 
 impl<'a, NC, EC, AC> Iterator for DGAdjIterator<'a, NC, EC, AC>
 where
-    NC: NodeContainer<'a>,
-    EC: EdgeContainer<'a, NId=NC::NId>,
-    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
 {
-    type Item = (
-        Edge<'a, NC::NId, EC::EId, EC::E>,
-        Node<'a, NC::NId, NC::N>,
-    );
+    type Item = (Edge<'a, NC::NId, EC::EId, EC::E>, Node<'a, NC::NId, NC::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(id, v)| {
-            (self.graph.edges.edge(id).expect("id from adj iterator must refer to real edge"), self.graph.nodes.node(v).expect("id from adj iterator must refer to real edge"))
+            (
+                self.graph
+                    .edges
+                    .edge(id)
+                    .expect("id from adj iterator must refer to real edge"),
+                self.graph
+                    .nodes
+                    .node(v)
+                    .expect("id from adj iterator must refer to real edge"),
+            )
         })
     }
 }
 
 // impl UnGraph where AC: Ordinal, NC: Ordinal
 // impl UnGraph where AC: Keyed
-
-pub struct DiGraph<'a, NC, EC, AC>
+/*
+pub struct DiGraph<NC, EC, AC>
 where
-    NC: NodeContainer<'a>,
-    EC: EdgeContainer<'a, NId=NC::NId>,
-    AC: AdjContainer<'a, NId=NC::NId, EId=EC::EId>,
+    NC: NodeContainer,
+    EC: EdgeContainer<NId=NC::NId>,
+    AC: AdjContainer<NId=NC::NId, EId=EC::EId>,
 {
     nodes: NC,
     edges: EC,
     out_adj: AC,
     in_adj: AC,
-
-    phantom: PhantomData<&'a NC>, // this is because the struct doesn't store anything directly
-                                  // using lifetime 'a, but we need the lifetime to use in the
-                                  // where clause
 }
 
-type BlahGraph<'a> = DiGraph<'a, NodeMap<usize, ()>, EdgeStableVec<usize, ()>, AdjMap<usize, usize>>;*/
+type BlahGraph = DiGraph<NodeMap<usize, ()>, EdgeStableVec<usize, ()>, AdjMap<usize, usize>>;*/
