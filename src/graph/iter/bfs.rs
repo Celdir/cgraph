@@ -3,17 +3,17 @@ use crate::graph::structure::graph::Graph;
 use crate::graph::structure::node::Node;
 use std::collections::{HashMap, VecDeque};
 
-pub fn bfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
+pub fn bfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
     Bfs::new(graph, start)
 }
 
-pub struct Bfs<'a, G: Graph<'a>> {
+pub struct Bfs<'a, G: Graph> {
     graph: &'a G,
     queue: VecDeque<G::NId>,
     parent: HashMap<G::NId, Option<G::EId>>,
 }
 
-impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
+impl<'a, G: Graph> Iterator for Bfs<'a, G> {
     type Item = (
         Option<Edge<'a, G::NId, G::EId, G::E>>,
         Node<'a, G::NId, G::N>,
@@ -43,7 +43,7 @@ impl<'a, G: Graph<'a>> Iterator for Bfs<'a, G> {
     }
 }
 
-impl<'a, G: Graph<'a>> Bfs<'a, G> {
+impl<'a, G: Graph> Bfs<'a, G> {
     fn new(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
         Bfs {
             graph,

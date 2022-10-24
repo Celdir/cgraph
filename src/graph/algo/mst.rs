@@ -11,7 +11,7 @@ use std::ops::Add;
 // (technically minimum spanning forest as we run Prim's for each connected component)
 pub fn mst<'a, G>(graph: &'a G) -> MST<'a, G>
 where
-    G: UndirectedGraph<'a>,
+    G: UndirectedGraph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     let mut parent = HashMap::new();
@@ -62,7 +62,7 @@ where
 
 pub struct MST<'a, G>
 where
-    G: UndirectedGraph<'a>,
+    G: UndirectedGraph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     parent: HashMap<G::NId, Edge<'a, G::NId, G::EId, G::E>>,
@@ -72,7 +72,7 @@ where
 
 impl<'a, G> MST<'a, G>
 where
-    G: UndirectedGraph<'a>,
+    G: UndirectedGraph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     pub fn weight(&self) -> G::E {

@@ -45,15 +45,15 @@ impl<Id: Eq + Hash + Copy, N, E> MapGraph<Id, N, E> {
     }
 }
 
-impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, E> {
+impl<Id: Eq + Hash + Copy, N, E> Graph for MapGraph<Id, N, E> {
     type N = N;
     type NId = Id;
     type E = E;
     type EId = usize;
 
-    type NodeIterator = NodeIterator<'a, Id, N>;
-    type EdgeIterator = EdgeIterator<'a, Id, E>;
-    type AdjIterator = AdjIterator<'a, Id, N, E>;
+    type NodeIterator<'a> = NodeIterator<'a, Id, N> where Self: 'a;
+    type EdgeIterator<'a> = EdgeIterator<'a, Id, E> where Self: 'a;
+    type AdjIterator<'a> = AdjIterator<'a, Id, N, E> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
@@ -164,9 +164,9 @@ impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> Graph<'a> for MapGraph<Id, N, 
     }
 }
 
-impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> UndirectedGraph<'a> for MapGraph<Id, N, E> {}
+impl<Id: Eq + Hash + Copy, N, E> UndirectedGraph for MapGraph<Id, N, E> {}
 
-impl<'a, Id: 'a + Eq + Hash + Copy, N: 'a, E: 'a> KeyedGraph<'a> for MapGraph<Id, N, E> {
+impl<Id: Eq + Hash + Copy, N, E> KeyedGraph for MapGraph<Id, N, E> {
     // returns previous node data if there was any, deletes any existing edges at that id
     // to change node data without removing edges, use node_data_mut()
     fn put_node(&mut self, id: Id, node: N) -> Option<N> {

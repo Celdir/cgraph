@@ -3,7 +3,7 @@ use crate::graph::structure::node::Node;
 use std::collections::{HashMap, VecDeque};
 
 // assumes the graph has an edge from A to B if B depends on A
-pub fn topological_sort<'a, G: DirectedGraph<'a>>(graph: &'a G) -> Option<Vec<Node<'a, G::NId, G::N>>> {
+pub fn topological_sort<'a, G: DirectedGraph>(graph: &'a G) -> Option<Vec<Node<'a, G::NId, G::N>>> {
     let mut in_degree: HashMap<G::NId, usize> = HashMap::new();
     let mut queue: VecDeque<Node<'a, G::NId, G::N>> = VecDeque::new();
 

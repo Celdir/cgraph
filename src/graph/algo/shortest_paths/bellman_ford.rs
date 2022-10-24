@@ -7,7 +7,7 @@ use std::default::Default;
 use std::ops::Add;
 
 type Cycle<'a, G> =
-    Vec<Edge<'a, <G as Graph<'a>>::NId, <G as Graph<'a>>::EId, <G as Graph<'a>>::E>>;
+    Vec<Edge<'a, <G as Graph>::NId, <G as Graph>::EId, <G as Graph>::E>>;
 
 // returns shortest path tree and boolean that is true if negative cycle is found
 pub fn bellman_ford<'a, G>(
@@ -15,7 +15,7 @@ pub fn bellman_ford<'a, G>(
     start: G::NId,
 ) -> (ShortestPathTree<'a, G>, Option<Cycle<'a, G>>)
 where
-    G: Graph<'a>,
+    G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     let mut dist = HashMap::new();

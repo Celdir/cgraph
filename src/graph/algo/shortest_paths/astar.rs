@@ -15,7 +15,7 @@ pub fn astar<'a, G>(
     heuristic: impl Fn(Node<'a, G::NId, G::N>) -> G::E,
 ) -> Option<ShortestPath<'a, G>>
 where
-    G: Graph<'a>,
+    G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     let mut dist = HashMap::new();

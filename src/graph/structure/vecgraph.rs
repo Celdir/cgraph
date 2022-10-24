@@ -57,19 +57,19 @@ impl<N: Clone, E: Clone> StableVecGraph<N, E> {
     }
 }
 
-impl<'a, N, E> Graph<'a> for StableVecGraph<N, E>
+impl<N, E> Graph for StableVecGraph<N, E>
 where
-    N: 'a + Clone,
-    E: 'a + Clone,
+    N: Clone,
+    E: Clone,
 {
     type N = N;
     type NId = usize;
     type E = E;
     type EId = usize;
 
-    type NodeIterator = NodeIterator<'a, N>;
-    type EdgeIterator = EdgeIterator<'a, E>;
-    type AdjIterator = AdjIterator<'a, N, E>;
+    type NodeIterator<'a> = NodeIterator<'a, N> where Self: 'a;
+    type EdgeIterator<'a> = EdgeIterator<'a, E> where Self: 'a;
+    type AdjIterator<'a> = AdjIterator<'a, N, E> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes_len, self.edges_len)
@@ -183,10 +183,10 @@ where
     }
 }
 
-impl<'a, N, E> OrdinalGraph<'a> for StableVecGraph<N, E>
+impl<N, E> OrdinalGraph for StableVecGraph<N, E>
 where
-    N: 'a + Clone,
-    E: 'a + Clone,
+    N: Clone,
+    E: Clone,
 {
     fn insert_node(&mut self, node: N) -> usize {
         let id = self.nodes.len();
@@ -198,10 +198,10 @@ where
     }
 }
 
-impl<'a, N, E> DirectedGraph<'a> for StableVecGraph<N, E>
+impl<N, E> DirectedGraph for StableVecGraph<N, E>
 where
-    N: 'a + Clone,
-    E: 'a + Clone,
+    N: Clone,
+    E: Clone,
 {
     fn out_edges(&self, u: usize) -> Option<AdjIterator<N, E>> {
         Some(AdjIterator {
@@ -247,14 +247,14 @@ where
     }
 }
 
-impl<'a, N, E> MultiGraph<'a> for StableVecGraph<N, E>
+impl<N, E> MultiGraph for StableVecGraph<N, E>
 where
-    N: 'a + Clone,
-    E: 'a + Clone,
+    N: Clone,
+    E: Clone,
 {
-    type MultiEdgeIterator = iter::Once<Edge<'a, usize, usize, E>>;
+    type MultiEdgeIterator<'a> = iter::Once<Edge<'a, usize, usize, E>> where Self: 'a;
 
-    fn between_multi(&'a self, u: usize, v: usize) -> Option<Self::MultiEdgeIterator> {
+    fn between_multi<'a>(&'a self, u: usize, v: usize) -> Option<Self::MultiEdgeIterator<'a>> {
         let &edge_id = self.out_adj.get(u)?.get(&v)?;
         match self.edges.get(edge_id) {
             Some(Some(edge)) => Some(iter::once(Edge::new(edge_id, edge.u, edge.v, &edge.e))),

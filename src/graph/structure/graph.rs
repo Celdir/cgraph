@@ -2,20 +2,20 @@ use crate::graph::structure::edge::Edge;
 use crate::graph::structure::node::Node;
 use std::hash::Hash;
 
-pub trait Graph<'a> {
-    type N: 'a;
+pub trait Graph {
+    type N;
     type NId: Eq + Hash + Copy;
-    type E: 'a;
+    type E;
     type EId: Eq + Hash + Copy;
 
-    type NodeIterator: Iterator<Item = Node<'a, Self::NId, Self::N>>;
-    type EdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
-    type AdjIterator: Iterator<
+    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>> where Self: 'a;
+    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>> where Self: 'a;
+    type AdjIterator<'a>: Iterator<
         Item = (
             Edge<'a, Self::NId, Self::EId, Self::E>,
             Node<'a, Self::NId, Self::N>,
         ),
-    >;
+    > where Self: 'a;
 
     fn len(&self) -> (usize, usize);
 
@@ -36,35 +36,35 @@ pub trait Graph<'a> {
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;
 
-    fn nodes(&'a self) -> Self::NodeIterator;
-    fn edges(&'a self) -> Self::EdgeIterator;
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
     // Returns out edges for directed graph or all edges for undirected
-    fn adj(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
 }
 
-pub trait OrdinalGraph<'a>: Graph<'a> {
+pub trait OrdinalGraph: Graph {
     fn insert_node(&mut self, node: Self::N) -> Self::NId;
 }
 
-pub trait KeyedGraph<'a>: Graph<'a> {
+pub trait KeyedGraph: Graph {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
 }
 
-pub trait DirectedGraph<'a>: Graph<'a> {
-    fn out_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
+pub trait DirectedGraph: Graph {
+    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn out_degree(&self, u: Self::NId) -> usize;
 
-    fn in_edges(&'a self, u: Self::NId) -> Option<Self::AdjIterator>;
+    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn in_degree(&self, u: Self::NId) -> usize;
 
     fn reverse(&self) -> Self;
     fn reverse_edge(&mut self, id: Self::EId) -> Option<()>;
 }
 
-pub trait UndirectedGraph<'a>: Graph<'a> {}
+pub trait UndirectedGraph: Graph {}
 
-pub trait MultiGraph<'a>: Graph<'a> {
-    type MultiEdgeIterator: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>;
+pub trait MultiGraph: Graph {
+    type MultiEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>> where Self: 'a;
 
-    fn between_multi(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator>;
+    fn between_multi<'a>(&'a self, u: Self::NId, v: Self::NId) -> Option<Self::MultiEdgeIterator<'a>>;
 }

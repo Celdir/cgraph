@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub struct ShortestPathTree<'a, G>
 where
-    G: Graph<'a>,
+    G: Graph,
     G::E: Clone,
 {
     dist: HashMap<G::NId, G::E>,
@@ -13,7 +13,7 @@ where
 
 impl<'a, G> ShortestPathTree<'a, G>
 where
-    G: Graph<'a>,
+    G: Graph,
     G::E: Clone,
 {
     pub fn new(
@@ -51,7 +51,7 @@ where
 
 pub struct ShortestPath<'a, G>
 where
-    G: Graph<'a>,
+    G: Graph,
     G::E: Clone,
 {
     pub dist: G::E,

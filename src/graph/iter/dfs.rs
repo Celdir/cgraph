@@ -3,17 +3,17 @@ use crate::graph::structure::graph::Graph;
 use crate::graph::structure::node::Node;
 use std::collections::HashMap;
 
-pub fn dfs<'a, G: Graph<'a>>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
+pub fn dfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
     Dfs::new(graph, start)
 }
 
-pub struct Dfs<'a, G: Graph<'a>> {
+pub struct Dfs<'a, G: Graph> {
     graph: &'a G,
     stack: Vec<G::NId>,
     parent: HashMap<G::NId, Option<G::EId>>,
 }
 
-impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
+impl<'a, G: Graph> Iterator for Dfs<'a, G> {
     type Item = (
         Option<Edge<'a, G::NId, G::EId, G::E>>,
         Node<'a, G::NId, G::N>,
@@ -44,7 +44,7 @@ impl<'a, G: Graph<'a>> Iterator for Dfs<'a, G> {
     }
 }
 
-impl<'a, G: Graph<'a>> Dfs<'a, G> {
+impl<'a, G: Graph> Dfs<'a, G> {
     fn new(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
         Dfs {
             graph,
