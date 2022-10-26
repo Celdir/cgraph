@@ -244,8 +244,98 @@ pub trait MultiAdjContainer: AdjContainer {
     ) -> Option<Self::MultiEdgeIterator<'a>>;
 }
 
+pub trait DirectedAdjContainer: AdjContainer {
+    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn out_degree(&self, u: Self::NId) -> usize;
+
+    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn in_degree(&self, u: Self::NId) -> usize;
+}
+
 pub trait OrdinalAdjContainer: AdjContainer + Ordinal {}
 pub trait KeyedAdjContainer: AdjContainer + Keyed {}
+
+pub struct Di<AC: AdjContainer> {
+    out_adj: AC,
+    in_adj: AC,
+}
+
+impl<AC: AdjContainer> AdjContainer for Di<AC> {
+    type NId = AC::NId;
+    type EId = AC::EId;
+
+    type AdjIterator<'a> = AC::AdjIterator<'a>
+    where
+        Self: 'a;
+
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        self.out_adj.adj(u)
+    }
+
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Self::EId> {
+        self.out_adj.between(u, v)
+    }
+
+    fn degree(&self, u: Self::NId) -> usize {
+        self.out_adj.degree(u)
+    }
+
+    fn insert_node(&mut self, u: Self::NId) {
+        self.out_adj.insert_node(u);
+        self.in_adj.insert_node(u);
+    }
+
+    fn remove_node(&mut self, u: Self::NId) {
+        self.out_adj.remove_node(u);
+        self.in_adj.remove_node(u);
+    }
+
+    fn clear_node(&mut self, u: Self::NId) {
+        // TODO: how should this work at the Graph level? when graph iterates over adj() to
+        // determine the edges to remove, it doesn't look at in edges, but here we clear both.
+        // Should clear_node in adj container actually remove the adjacencies from neighboring
+        // nodes as well (currently being done at Graph level) and return a vec of edge ids to
+        // Graph can remove those from the edge container? I think this is the best option.
+        self.out_adj.clear_node(u);
+        self.in_adj.clear_node(u);
+    }
+
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
+        self.out_adj.contains_edge(u, v)
+    }
+
+    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.out_adj.insert_edge(u, v, edge_id);
+        self.in_adj.insert_edge(v, u, edge_id);
+    }
+
+    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.out_adj.remove_edge(u, v, edge_id);
+        self.in_adj.remove_edge(v, u, edge_id);
+    }
+}
+
+impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
+    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        self.out_adj.adj(u)
+    }
+
+    fn out_degree(&self, u: Self::NId) -> usize {
+        self.out_adj.degree(u)
+    }
+
+    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        self.in_adj.adj(u)
+    }
+
+    fn in_degree(&self, u: Self::NId) -> usize {
+        self.in_adj.degree(u)
+    }
+}
+
+pub struct Un<AC: AdjContainer> {
+    adj: AC,
+}
 
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
@@ -479,6 +569,19 @@ where
         })
     }
 }
+
+//  options for how to abstract directed vs undirected graphs:
+//  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges. 
+//      pros:
+//          +
+//      cons:
+//          - sometimes you might not want to store separate in_edges even with a directed graph, if you don't care about the performance of reading in_edges
+//          - have to write the same impl for most functions twice
+//
+// 2. Make Di<> and Un<> adjacency containers that hold other types of adj containers
+//      pros:
+//          + it's just better lol
+//          + if you want to reduce memory / don't care about fast in_edges for a directed graph, just use raw adj container directly (AdjMap, AdjVec, AdjMatrix) without the Di<> or Un<>
 
 // impl UnGraph where AC: Ordinal, NC: Ordinal
 // impl UnGraph where AC: Keyed
