@@ -225,7 +225,7 @@ pub trait AdjContainer {
 
     fn insert_node(&mut self, u: Self::NId);
     fn remove_node(&mut self, u: Self::NId);
-    fn clear_node(&mut self, u: Self::NId);
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>>;
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);
@@ -290,14 +290,20 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
         self.in_adj.remove_node(u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) {
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
         // TODO: how should this work at the Graph level? when graph iterates over adj() to
         // determine the edges to remove, it doesn't look at in edges, but here we clear both.
         // Should clear_node in adj container actually remove the adjacencies from neighboring
         // nodes as well (currently being done at Graph level) and return a vec of edge ids to
         // Graph can remove those from the edge container? I think this is the best option.
-        self.out_adj.clear_node(u);
-        self.in_adj.clear_node(u);
+        let mut out_ids = self.out_adj.clear_node(u)?;
+        let mut in_ids = self
+            .in_adj
+            .clear_node(u)
+            .expect("out_adj and in_adj should both have the same nodes");
+        out_ids.append(&mut in_ids);
+
+        Some(out_ids)
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
@@ -333,8 +339,79 @@ impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
     }
 }
 
+impl<AC> MultiAdjContainer for Di<AC>
+where
+    AC: AdjContainer + MultiAdjContainer,
+{
+    type MultiEdgeIterator<'a> = AC::MultiEdgeIterator<'a> where Self: 'a;
+
+    fn between_multi<'a>(
+        &'a self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<Self::MultiEdgeIterator<'a>> {
+        // TODO: what about in edges between u and v?
+        // Should we just get rid of the multigraph type?
+        self.out_adj.between_multi(u, v)
+    }
+}
+
+// TODO: impl Ordinal when AC is Ordinal and same with Keyed
+// Can we do a blanket impl here?
+
 pub struct Un<AC: AdjContainer> {
     adj: AC,
+}
+
+impl<AC: AdjContainer> AdjContainer for Un<AC> {
+    type NId = AC::NId;
+    type EId = AC::EId;
+
+    type AdjIterator<'a> = AC::AdjIterator<'a>
+    where
+        Self: 'a;
+
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        self.adj.adj(u)
+    }
+
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Self::EId> {
+        self.adj.between(u, v)
+    }
+
+    fn degree(&self, u: Self::NId) -> usize {
+        self.adj.degree(u)
+    }
+
+    fn insert_node(&mut self, u: Self::NId) {
+        self.adj.insert_node(u);
+    }
+
+    fn remove_node(&mut self, u: Self::NId) {
+        self.adj.remove_node(u);
+    }
+
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+        let ids = self.adj.clear_node(u)?;
+        for &(v, edge_id) in &ids {
+            self.remove_edge(v, u, edge_id);
+        }
+        Some(ids)
+    }
+
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
+        self.adj.contains_edge(u, v)
+    }
+
+    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.adj.insert_edge(u, v, edge_id);
+        self.adj.insert_edge(v, u, edge_id);
+    }
+
+    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.adj.remove_edge(u, v, edge_id);
+        self.adj.remove_edge(v, u, edge_id);
+    }
 }
 
 pub struct AdjMap<NId, EId> {
@@ -373,8 +450,12 @@ where
         self.adj.remove(&u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) {
-        self.adj.get_mut(&u).unwrap().clear();
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+        let u_adj = self.adj.get_mut(&u)?;
+        let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (v, edge_id)).collect();
+        u_adj.clear();
+
+        Some(ids)
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
@@ -469,10 +550,8 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Option<()> {
-        let adj_ids: Vec<_> = self.adj.adj(u)?.collect();
-        self.adj.clear_node(u);
-        for (edge_id, v) in adj_ids {
-            self.adj.remove_edge(v, u, edge_id);
+        let edge_ids: Vec<_> = self.adj.clear_node(u)?;
+        for (_, edge_id) in edge_ids {
             self.edges
                 .remove_edge(edge_id)
                 .expect("Edge should be present");
@@ -571,7 +650,7 @@ where
 }
 
 //  options for how to abstract directed vs undirected graphs:
-//  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges. 
+//  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges.
 //      pros:
 //          +
 //      cons:
