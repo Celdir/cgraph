@@ -227,20 +227,6 @@ where
         self.in_adj.get(u).map_or(0, |adj_map| adj_map.len())
     }
 
-    fn reverse(&self) -> StableVecGraph<N, E> {
-        let copy: StableVecGraph<N, E> = self.clone();
-        let (nodes, edges): (Vec<N>, Vec<(usize, usize, E)>) = copy.into();
-        let mut reverse_graph = StableVecGraph::with_capacity(nodes.len(), edges.len());
-        for n in nodes {
-            reverse_graph.insert_node(n);
-        }
-        for (u, v, e) in edges {
-            reverse_graph.insert_edge(v, u, e);
-        }
-
-        reverse_graph
-    }
-
     fn reverse_edge(&mut self, id: usize) -> Option<()> {
         let edge = self.edges.get_mut(id)?.as_mut()?;
         std::mem::swap(&mut edge.u, &mut edge.v);

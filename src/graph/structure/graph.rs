@@ -62,7 +62,6 @@ pub trait DirectedGraph: Graph {
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn in_degree(&self, u: Self::NId) -> usize;
 
-    fn reverse(&self) -> Self;
     fn reverse_edge(&mut self, id: Self::EId) -> Option<()>;
 }
 

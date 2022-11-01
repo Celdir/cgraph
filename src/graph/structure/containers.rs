@@ -126,6 +126,8 @@ pub trait EdgeContainer {
 
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;
+
+    fn reverse_edge(&mut self, id: Self::EId) -> Option<()>;
 }
 
 struct InternalEdge<Id, E> {
@@ -137,6 +139,8 @@ pub struct EdgeStableVec<NId, E> {
     edges: Vec<Option<InternalEdge<NId, E>>>,
     edges_len: usize,
 }
+
+use std::mem;
 
 impl<NId, E> EdgeContainer for EdgeStableVec<NId, E>
 where
@@ -184,6 +188,13 @@ where
         let internal_edge = self.edges.remove(id)?;
         self.edges_len -= 1;
         Some(internal_edge.e)
+    }
+
+    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
+        let edge = self.edges.get_mut(id)?.as_mut()?;
+        mem::swap(&mut edge.u, &mut edge.v);
+
+        Some(())
     }
 }
 
@@ -250,6 +261,8 @@ pub trait DirectedAdjContainer: AdjContainer {
 
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn in_degree(&self, u: Self::NId) -> usize;
+
+    fn reverse_edge(&mut self, u: Self::NId, v: Self::NId, id: Self::EId);
 }
 
 pub trait OrdinalAdjContainer: AdjContainer + Ordinal {}
@@ -336,6 +349,14 @@ impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
 
     fn in_degree(&self, u: Self::NId) -> usize {
         self.in_adj.degree(u)
+    }
+
+    fn reverse_edge(&mut self, u: Self::NId, v: Self::NId, id: Self::EId) {
+        self.out_adj.remove_edge(u, v, id);
+        self.in_adj.remove_edge(v, u, id);
+
+        self.out_adj.insert_edge(v, u, id);
+        self.in_adj.insert_edge(u, v, id);
     }
 }
 
@@ -496,15 +517,15 @@ where
     }
 }
 
-use crate::graph::structure::graph::Graph;
+use crate::graph::structure::graph::{Graph, DirectedGraph};
 
-pub struct UnGraph<NC, EC, AC> {
+pub struct CGraph<NC, EC, AC> {
     nodes: NC,
     edges: EC,
     adj: AC,
 }
 
-impl<NC, EC, AC> Graph for UnGraph<NC, EC, AC>
+impl<NC, EC, AC> Graph for CGraph<NC, EC, AC>
 where
     NC: NodeContainer,
     EC: EdgeContainer<NId = NC::NId>,
@@ -517,7 +538,7 @@ where
 
     type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
     type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
-    type AdjIterator<'a> = DGAdjIterator<'a, NC, EC, AC> where Self: 'a;
+    type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
@@ -587,7 +608,6 @@ where
 
         let edge_id = self.edges.insert_edge(u, v, edge)?;
         self.adj.insert_edge(u, v, edge_id);
-        self.adj.insert_edge(v, u, edge_id);
         Some(edge_id)
     }
 
@@ -595,7 +615,6 @@ where
         let edge = self.edges.edge(id)?;
         let (u, v) = (edge.u(), edge.v());
         self.adj.remove_edge(u, v, id);
-        self.adj.remove_edge(v, u, id);
         self.edges.remove_edge(id)
     }
 
@@ -608,24 +627,62 @@ where
     }
 
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        Some(DGAdjIterator {
+        Some(GAdjIterator {
             graph: &self,
             inner: self.adj.adj(u)?,
         })
     }
 }
 
-pub struct DGAdjIterator<'a, NC, EC, AC>
+impl<NC, EC, AC> DirectedGraph for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: DirectedAdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        Some(GAdjIterator {
+            graph: &self,
+            inner: self.adj.out_edges(u)?,
+        })
+    }
+
+    fn out_degree(&self, u: Self::NId) -> usize {
+        self.adj.out_degree(u)
+    }
+
+    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        Some(GAdjIterator {
+            graph: &self,
+            inner: self.adj.in_edges(u)?,
+        })
+    }
+
+    fn in_degree(&self, u: Self::NId) -> usize {
+        self.adj.in_degree(u)
+    }
+
+    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
+        let edge = self.edge(id)?;
+        self.adj.reverse_edge(edge.u(), edge.v(), id);
+
+        self.edges.reverse_edge(id).unwrap();
+
+        Some(())
+    }
+}
+
+pub struct GAdjIterator<'a, NC, EC, AC>
 where
     NC: NodeContainer,
     EC: EdgeContainer<NId = NC::NId>,
     AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
 {
-    graph: &'a UnGraph<NC, EC, AC>,
+    graph: &'a CGraph<NC, EC, AC>,
     inner: AC::AdjIterator<'a>,
 }
 
-impl<'a, NC, EC, AC> Iterator for DGAdjIterator<'a, NC, EC, AC>
+impl<'a, NC, EC, AC> Iterator for GAdjIterator<'a, NC, EC, AC>
 where
     NC: NodeContainer,
     EC: EdgeContainer<NId = NC::NId>,
@@ -648,6 +705,9 @@ where
         })
     }
 }
+
+type DiGraph<NC, EC, AC> = CGraph<NC, EC, Di<AC>>;
+type UnGraph<NC, EC, AC> = CGraph<NC, EC, Un<AC>>;
 
 //  options for how to abstract directed vs undirected graphs:
 //  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges.
