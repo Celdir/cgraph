@@ -265,6 +265,7 @@ pub trait DirectedAdjContainer: AdjContainer {
     fn reverse_edge(&mut self, u: Self::NId, v: Self::NId, id: Self::EId);
 }
 
+pub trait UndirectedAdjContainer: AdjContainer {}
 pub trait OrdinalAdjContainer: AdjContainer + Ordinal {}
 pub trait KeyedAdjContainer: AdjContainer + Keyed {}
 
@@ -435,6 +436,8 @@ impl<AC: AdjContainer> AdjContainer for Un<AC> {
     }
 }
 
+impl<AC: AdjContainer> UndirectedAdjContainer for Un<AC> {}
+
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
 }
@@ -517,7 +520,9 @@ where
     }
 }
 
-use crate::graph::structure::graph::{Graph, DirectedGraph};
+use crate::graph::structure::graph::{
+    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph,
+};
 
 pub struct CGraph<NC, EC, AC> {
     nodes: NC,
@@ -672,6 +677,41 @@ where
     }
 }
 
+impl<NC, EC, AC> UndirectedGraph for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: UndirectedAdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+}
+
+impl<NC, EC, AC> OrdinalGraph for CGraph<NC, EC, AC>
+where
+    NC: OrdinalNodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    fn insert_node(&mut self, node: Self::N) -> Self::NId {
+        let id = self.nodes.insert_node(node);
+        self.adj.insert_node(id);
+        id
+    }
+}
+
+impl<NC, EC, AC> KeyedGraph for CGraph<NC, EC, AC>
+where
+    NC: KeyedNodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: KeyedAdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
+        let previous = self.remove_node(id);
+        self.nodes.put_node(id, node);
+        self.adj.insert_node(id);
+        previous
+    }
+}
+
 pub struct GAdjIterator<'a, NC, EC, AC>
 where
     NC: NodeContainer,
@@ -706,8 +746,8 @@ where
     }
 }
 
-type DiGraph<NC, EC, AC> = CGraph<NC, EC, Di<AC>>;
-type UnGraph<NC, EC, AC> = CGraph<NC, EC, Un<AC>>;
+pub type DiGraph<NC, EC, AC> = CGraph<NC, EC, Di<AC>>;
+pub type UnGraph<NC, EC, AC> = CGraph<NC, EC, Un<AC>>;
 
 //  options for how to abstract directed vs undirected graphs:
 //  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges.
