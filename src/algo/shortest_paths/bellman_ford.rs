@@ -1,6 +1,6 @@
-use crate::graph::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::Graph;
+use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
+use crate::graph::edge::Edge;
+use crate::graph::graph::Graph;
 use std::cmp::Ord;
 use std::collections::HashMap;
 use std::default::Default;
@@ -94,9 +94,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::algo::shortest_paths::bellman_ford::bellman_ford;
-    use crate::graph::structure::mapgraph::MapGraph;
-    use crate::graph::structure::vecgraph::StableVecGraph;
+    use crate::algo::shortest_paths::bellman_ford::bellman_ford;
+    use crate::graph::mapgraph::MapGraph;
+    use crate::graph::vecgraph::StableVecGraph;
 
     #[test]
     fn bellman_ford_base_case() {

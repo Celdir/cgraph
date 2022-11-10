@@ -1,6 +1,6 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::Graph;
-use crate::graph::structure::node::Node;
+use crate::graph::edge::Edge;
+use crate::graph::graph::Graph;
+use crate::graph::node::Node;
 use std::collections::{HashMap, VecDeque};
 
 pub fn bfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
@@ -56,8 +56,8 @@ impl<'a, G: Graph> Bfs<'a, G> {
 #[cfg(test)]
 mod tests {
     use crate::graph::iter::bfs::bfs;
-    use crate::graph::structure::mapgraph::MapGraph;
-    use crate::graph::structure::vecgraph::StableVecGraph;
+    use crate::graph::mapgraph::MapGraph;
+    use crate::graph::vecgraph::StableVecGraph;
     use std::collections::HashMap;
 
     #[test]

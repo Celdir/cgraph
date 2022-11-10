@@ -1,6 +1,6 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::Graph;
-use crate::graph::structure::node::Node;
+use crate::graph::edge::Edge;
+use crate::graph::graph::Graph;
+use crate::graph::node::Node;
 use std::collections::HashMap;
 
 pub fn dfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {

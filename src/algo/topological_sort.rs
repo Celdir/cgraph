@@ -1,5 +1,5 @@
-use crate::graph::structure::graph::DirectedGraph;
-use crate::graph::structure::node::Node;
+use crate::graph::graph::DirectedGraph;
+use crate::graph::node::Node;
 use std::collections::{HashMap, VecDeque};
 
 // assumes the graph has an edge from A to B if B depends on A
@@ -40,8 +40,8 @@ pub fn topological_sort<'a, G: DirectedGraph>(graph: &'a G) -> Option<Vec<Node<'
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::structure::vecgraph::StableVecGraph;
-    use crate::graph::algo::topological_sort::topological_sort;
+    use crate::graph::vecgraph::StableVecGraph;
+    use crate::algo::topological_sort::topological_sort;
 
     #[test]
     fn top_sort_triangle() {

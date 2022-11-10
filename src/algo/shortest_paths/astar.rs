@@ -1,6 +1,6 @@
-use crate::graph::algo::shortest_paths::shortest_path_tree::{ShortestPathTree, ShortestPath};
-use crate::graph::structure::graph::Graph;
-use crate::graph::structure::node::Node;
+use crate::algo::shortest_paths::shortest_path_tree::{ShortestPathTree, ShortestPath};
+use crate::graph::graph::Graph;
+use crate::graph::node::Node;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -54,9 +54,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::algo::shortest_paths::astar::astar;
-    use crate::graph::structure::graph::{Graph, KeyedGraph};
-    use crate::graph::structure::mapgraph::MapGraph;
+    use crate::algo::shortest_paths::astar::astar;
+    use crate::graph::graph::{Graph, KeyedGraph};
+    use crate::graph::mapgraph::MapGraph;
 
     #[test]
     fn astar_grid() {

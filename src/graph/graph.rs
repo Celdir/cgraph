@@ -1,5 +1,5 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::node::Node;
+use crate::graph::edge::Edge;
+use crate::graph::node::Node;
 use std::hash::Hash;
 
 pub trait Graph {

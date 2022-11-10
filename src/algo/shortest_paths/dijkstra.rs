@@ -1,5 +1,5 @@
-use crate::graph::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
-use crate::graph::structure::graph::Graph;
+use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
+use crate::graph::graph::Graph;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -50,9 +50,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::algo::shortest_paths::dijkstra::dijkstra;
-    use crate::graph::structure::mapgraph::MapGraph;
-    use crate::graph::structure::vecgraph::StableVecGraph;
+    use crate::algo::shortest_paths::dijkstra::dijkstra;
+    use crate::graph::mapgraph::MapGraph;
+    use crate::graph::vecgraph::StableVecGraph;
 
     #[test]
     fn dijkstra_base_case() {

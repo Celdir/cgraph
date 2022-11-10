@@ -1,5 +1,5 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::node::Node;
+use crate::graph::edge::Edge;
+use crate::graph::node::Node;
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -533,7 +533,7 @@ where
     }
 }
 
-use crate::graph::structure::graph::{
+use crate::graph::graph::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph,
 };
 

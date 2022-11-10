@@ -1,6 +1,6 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::{Graph, KeyedGraph, UndirectedGraph};
-use crate::graph::structure::node::Node;
+use crate::graph::edge::Edge;
+use crate::graph::graph::{Graph, KeyedGraph, UndirectedGraph};
+use crate::graph::node::Node;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::convert::From;
@@ -247,8 +247,8 @@ impl<'a, Id: Eq + Hash + Copy, N, E> Iterator for AdjIterator<'a, Id, N, E> {
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::structure::graph::{Graph, KeyedGraph};
-    use crate::graph::structure::mapgraph::MapGraph;
+    use crate::graph::graph::{Graph, KeyedGraph};
+    use crate::graph::mapgraph::MapGraph;
 
     #[test]
     fn puts_and_removes() {

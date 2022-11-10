@@ -1,5 +1,5 @@
-use crate::graph::structure::edge::Edge;
-use crate::graph::structure::graph::UndirectedGraph;
+use crate::graph::edge::Edge;
+use crate::graph::graph::UndirectedGraph;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -104,8 +104,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::algo::mst::mst;
-    use crate::graph::structure::mapgraph::MapGraph;
+    use crate::algo::mst::mst;
+    use crate::graph::mapgraph::MapGraph;
 
     #[test]
     fn mst_base_case() {
