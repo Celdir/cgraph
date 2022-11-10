@@ -363,7 +363,7 @@ impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
 
 impl<AC> MultiAdjContainer for Di<AC>
 where
-    AC: AdjContainer + MultiAdjContainer,
+    AC: MultiAdjContainer,
 {
     type MultiEdgeIterator<'a> = AC::MultiEdgeIterator<'a> where Self: 'a;
 
@@ -372,8 +372,6 @@ where
         u: Self::NId,
         v: Self::NId,
     ) -> Option<Self::MultiEdgeIterator<'a>> {
-        // TODO: what about in edges between u and v?
-        // Should we just get rid of the multigraph type?
         self.out_adj.between_multi(u, v)
     }
 }
@@ -437,6 +435,21 @@ impl<AC: AdjContainer> AdjContainer for Un<AC> {
 }
 
 impl<AC: AdjContainer> UndirectedAdjContainer for Un<AC> {}
+
+impl<AC> MultiAdjContainer for Un<AC>
+where
+    AC: MultiAdjContainer,
+{
+    type MultiEdgeIterator<'a> = AC::MultiEdgeIterator<'a> where Self: 'a;
+
+    fn between_multi<'a>(
+        &'a self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<Self::MultiEdgeIterator<'a>> {
+        self.adj.between_multi(u, v)
+    }
+}
 
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
@@ -748,6 +761,9 @@ where
 
 pub type DiGraph<NC, EC, AC> = CGraph<NC, EC, Di<AC>>;
 pub type UnGraph<NC, EC, AC> = CGraph<NC, EC, Un<AC>>;
+
+pub type DiMapGraph<Id, N, E> = CGraph<NodeMap<Id, N>, EdgeStableVec<Id, E>, Di<AdjMap<Id, usize>>>;
+pub type UnMapGraph<Id, N, E> = CGraph<NodeMap<Id, N>, EdgeStableVec<Id, E>, Un<AdjMap<Id, usize>>>;
 
 //  options for how to abstract directed vs undirected graphs:
 //  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges.
