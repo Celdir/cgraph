@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::graph::{Graph, KeyedGraph, UndirectedGraph};
+use crate::graph::traits::{Graph, KeyedGraph, UndirectedGraph};
 use crate::graph::node::Node;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -247,7 +247,7 @@ impl<'a, Id: Eq + Hash + Copy, N, E> Iterator for AdjIterator<'a, Id, N, E> {
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::graph::{Graph, KeyedGraph};
+    use crate::graph::traits::{Graph, KeyedGraph};
     use crate::graph::mapgraph::MapGraph;
 
     #[test]

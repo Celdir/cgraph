@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::graph::UndirectedGraph;
+use crate::graph::traits::UndirectedGraph;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;

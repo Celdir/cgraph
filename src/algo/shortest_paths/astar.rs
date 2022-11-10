@@ -1,5 +1,5 @@
 use crate::algo::shortest_paths::shortest_path_tree::{ShortestPathTree, ShortestPath};
-use crate::graph::graph::Graph;
+use crate::graph::traits::Graph;
 use crate::graph::node::Node;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
@@ -55,7 +55,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::shortest_paths::astar::astar;
-    use crate::graph::graph::{Graph, KeyedGraph};
+    use crate::graph::traits::{Graph, KeyedGraph};
     use crate::graph::mapgraph::MapGraph;
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::graph::graph::DirectedGraph;
+use crate::graph::traits::DirectedGraph;
 use crate::graph::node::Node;
 use std::collections::{HashMap, VecDeque};
 

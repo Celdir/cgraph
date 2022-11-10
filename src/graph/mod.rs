@@ -1,4 +1,4 @@
-pub mod graph;
+pub mod traits;
 //pub use self::graph::Graph;
 //
 pub mod vecgraph;

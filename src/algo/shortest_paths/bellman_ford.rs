@@ -1,6 +1,6 @@
 use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
 use crate::graph::edge::Edge;
-use crate::graph::graph::Graph;
+use crate::graph::traits::Graph;
 use std::cmp::Ord;
 use std::collections::HashMap;
 use std::default::Default;

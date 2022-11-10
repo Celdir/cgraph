@@ -1,5 +1,5 @@
 use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
-use crate::graph::graph::Graph;
+use crate::graph::traits::Graph;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;

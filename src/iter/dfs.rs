@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::graph::Graph;
+use crate::graph::traits::Graph;
 use crate::graph::node::Node;
 use std::collections::HashMap;
 

@@ -533,7 +533,7 @@ where
     }
 }
 
-use crate::graph::graph::{
+use crate::graph::traits::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph,
 };
 

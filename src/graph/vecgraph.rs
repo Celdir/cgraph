@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::graph::{DirectedGraph, Graph, MultiGraph, OrdinalGraph};
+use crate::graph::traits::{DirectedGraph, Graph, MultiGraph, OrdinalGraph};
 use crate::graph::node::Node;
 use std::collections::hash_map;
 use std::collections::HashMap;
@@ -346,7 +346,7 @@ impl<'a, E> Iterator for EdgeIterator<'a, E> {
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::graph::{Graph, OrdinalGraph};
+    use crate::graph::traits::{Graph, OrdinalGraph};
     use crate::graph::vecgraph::StableVecGraph;
 
     #[test]
