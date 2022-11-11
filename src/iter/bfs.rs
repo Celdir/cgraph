@@ -55,7 +55,7 @@ impl<'a, G: Graph> Bfs<'a, G> {
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::iter::bfs::bfs;
+    use crate::iter::bfs::bfs;
     use crate::graph::mapgraph::MapGraph;
     use crate::graph::vecgraph::StableVecGraph;
     use std::collections::HashMap;
