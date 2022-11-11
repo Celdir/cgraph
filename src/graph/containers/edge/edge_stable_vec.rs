@@ -5,7 +5,9 @@ use std::iter;
 use std::iter::Iterator;
 use std::mem;
 use std::slice;
+use std::default::Default;
 
+#[derive(Default)]
 pub struct EdgeStableVec<NId, E> {
     edges: Vec<Option<InternalEdge<NId, E>>>,
     edges_len: usize,

@@ -1,6 +1,7 @@
 use crate::graph::containers::adj::traits::{
     AdjContainer, KeyedAdjContainer, MultiAdjContainer, OrdinalAdjContainer, UndirectedAdjContainer,
 };
+use std::default::Default;
 
 pub struct Un<AC: AdjContainer> {
     adj: AC,
@@ -76,3 +77,12 @@ where
 
 impl<AC> KeyedAdjContainer for Un<AC> where AC: KeyedAdjContainer {}
 impl<AC> OrdinalAdjContainer for Un<AC> where AC: OrdinalAdjContainer {}
+
+impl<AC> Default for Un<AC>
+where
+    AC: AdjContainer + Default,
+{
+    fn default() -> Self {
+        Self { adj: AC::default() }
+    }
+}

@@ -1,9 +1,11 @@
 use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::default::Default;
 use std::hash::Hash;
 use std::iter::Iterator;
 
+#[derive(Default)]
 pub struct AdjMap<NId, EId> {
     adj: HashMap<NId, HashMap<NId, EId>>,
 }

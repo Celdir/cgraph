@@ -8,6 +8,7 @@ use crate::graph::containers::node::traits::{
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph};
+use std::default::Default;
 
 pub struct CGraph<NC, EC, AC> {
     nodes: NC,
@@ -194,6 +195,32 @@ where
         self.nodes.put_node(id, node);
         self.adj.insert_node(id);
         previous
+    }
+}
+
+impl<NC, EC, AC> Default for CGraph<NC, EC, AC>
+where
+    NC: Default,
+    EC: Default,
+    AC: Default,
+{
+    fn default() -> Self {
+        Self {
+            nodes: NC::default(),
+            edges: EC::default(),
+            adj: AC::default(),
+        }
+    }
+}
+
+impl<NC, EC, AC> CGraph<NC, EC, AC>
+where
+    NC: Default,
+    EC: Default,
+    AC: Default,
+{
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

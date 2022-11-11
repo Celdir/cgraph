@@ -2,9 +2,11 @@ use crate::graph::containers::node::traits::{KeyedNodeContainer, NodeContainer};
 use crate::graph::node::Node;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::default::Default;
 use std::hash::Hash;
 use std::iter::Iterator;
 
+#[derive(Default)]
 pub struct NodeMap<Id, N> {
     nodes: HashMap<Id, N>,
 }
