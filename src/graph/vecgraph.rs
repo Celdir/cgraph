@@ -100,6 +100,7 @@ where
 
     fn remove_node(&mut self, id: usize) -> Option<N> {
         self.clear_node(id);
+        // TODO: should not actually .remove() here! should replace with None
         let node = self.nodes.remove(id)?;
         self.nodes_len -= 1;
         Some(node)

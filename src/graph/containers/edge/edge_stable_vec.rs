@@ -62,7 +62,7 @@ where
     }
 
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
-        let internal_edge = self.edges.remove(id)?;
+        let internal_edge = mem::replace(self.edges.get_mut(id)?, None)?;
         self.edges_len -= 1;
         Some(internal_edge.e)
     }

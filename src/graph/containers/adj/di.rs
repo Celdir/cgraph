@@ -39,16 +39,19 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
-        // TODO: how should this work at the Graph level? when graph iterates over adj() to
-        // determine the edges to remove, it doesn't look at in edges, but here we clear both.
-        // Should clear_node in adj container actually remove the adjacencies from neighboring
-        // nodes as well (currently being done at Graph level) and return a vec of edge ids to
-        // Graph can remove those from the edge container? I think this is the best option.
         let mut out_ids = self.out_adj.clear_node(u)?;
+        for &(v, edge_id) in &out_ids {
+            self.in_adj.remove_edge(v, u, edge_id);
+        }
+
         let mut in_ids = self
             .in_adj
             .clear_node(u)
             .expect("out_adj and in_adj should both have the same nodes");
+        for &(v, edge_id) in &in_ids {
+            self.out_adj.remove_edge(v, u, edge_id);
+        }
+
         out_ids.append(&mut in_ids);
 
         Some(out_ids)

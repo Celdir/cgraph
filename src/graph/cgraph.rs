@@ -258,32 +258,126 @@ where
     }
 }
 
-//  options for how to abstract directed vs undirected graphs:
-//  1. UnGraph and DiGraph structs, where DiGraph stores in_edges and out_edges.
-//      pros:
-//          +
-//      cons:
-//          - sometimes you might not want to store separate in_edges even with a directed graph, if you don't care about the performance of reading in_edges
-//          - have to write the same impl for most functions twice
-//
-// 2. Make Di<> and Un<> adjacency containers that hold other types of adj containers
-//      pros:
-//          + it's just better lol
-//          + if you want to reduce memory / don't care about fast in_edges for a directed graph, just use raw adj container directly (AdjMap, AdjVec, AdjMatrix) without the Di<> or Un<>
+#[cfg(test)]
+mod tests {
+    use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph};
+    use crate::graph::types::{DiMapGraph, UnMapGraph};
 
-// impl UnGraph where AC: Ordinal, NC: Ordinal
-// impl UnGraph where AC: Keyed
-/*
-pub struct DiGraph<NC, EC, AC>
-where
-    NC: NodeContainer,
-    EC: EdgeContainer<NId=NC::NId>,
-    AC: AdjContainer<NId=NC::NId, EId=EC::EId>,
-{
-    nodes: NC,
-    edges: EC,
-    out_adj: AC,
-    in_adj: AC,
+    #[test]
+    fn unmap_puts_and_removes() {
+        // A --5-- B
+        // |       |
+        // 2       1
+        // |       |
+        // C --1-- D
+        let mut graph = UnMapGraph::new();
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_adj: Vec<_> = graph
+            .adj("A")
+            .expect("A should have adj edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec!["B", "C"]);
+
+        // edges should be undirected and the same id each direction
+        assert!(graph.between("A", "B").is_some());
+        assert!(graph.between("B", "A").is_some());
+        assert_eq!(
+            graph.between("A", "B").unwrap().id(),
+            graph.between("B", "A").unwrap().id()
+        );
+
+        // removes A and adjacent edges
+        graph.remove_node("A").expect("node should exist");
+        assert!(graph.node("A").is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.adj("B").expect("B should have adj edges").count(), 1);
+        assert_eq!(graph.adj("C").expect("C should have adj edges").count(), 1);
+        assert_eq!(graph.adj("D").expect("D should have adj edges").count(), 2);
+    }
+
+    #[test]
+    fn dimap_puts_and_removes() {
+        // A --5-> B
+        // |       |
+        // 2       1
+        // v       v
+        // C --1-> D
+        let mut graph = DiMapGraph::new();
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_out: Vec<_> = graph
+            .out_edges("A")
+            .expect("A should have out edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_out.sort();
+        assert_eq!(a_out, vec!["B", "C"]);
+
+        let mut d_in: Vec<_> = graph
+            .in_edges("D")
+            .expect("D should have in edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        d_in.sort();
+        assert_eq!(d_in, vec!["B", "C"]);
+
+        // edges should be directed
+        assert!(graph.between("A", "B").is_some());
+        assert!(graph.between("B", "A").is_none());
+
+        // remove A and adjacent edges
+        graph.remove_node("A").expect("node should exist");
+        assert!(graph.node("A").is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.in_edges("B").unwrap().count(), 0);
+        assert_eq!(graph.out_edges("B").unwrap().count(), 1);
+        assert_eq!(graph.in_edges("C").unwrap().count(), 0);
+        assert_eq!(graph.out_edges("C").unwrap().count(), 1);
+        assert_eq!(graph.in_edges("D").unwrap().count(), 2);
+        assert_eq!(graph.out_edges("D").unwrap().count(), 0);
+
+        // remove D and adjacent edges (including incoming edges)
+        graph.remove_node("D").expect("node should exist");
+        let (n3, e3) = graph.len();
+        assert_eq!(n3, 2);
+        assert_eq!(e3, 0);
+
+        assert_eq!(graph.out_edges("B").unwrap().count(), 0);
+        assert_eq!(graph.in_edges("B").unwrap().count(), 0);
+        assert_eq!(graph.out_edges("C").unwrap().count(), 0);
+        assert_eq!(graph.in_edges("C").unwrap().count(), 0);
+    }
 }
-
-type BlahGraph = DiGraph<NodeMap<usize, ()>, EdgeStableVec<usize, ()>, AdjMap<usize, usize>>;*/
