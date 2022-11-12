@@ -308,9 +308,9 @@ mod tests {
         assert_eq!(n2, 3);
         assert_eq!(e2, 2);
 
-        assert_eq!(graph.adj("B").expect("B should have adj edges").count(), 1);
-        assert_eq!(graph.adj("C").expect("C should have adj edges").count(), 1);
-        assert_eq!(graph.adj("D").expect("D should have adj edges").count(), 2);
+        assert_eq!(graph.degree("B"), 1);
+        assert_eq!(graph.degree("C"), 1);
+        assert_eq!(graph.degree("D"), 2);
     }
 
     #[test]
@@ -362,12 +362,12 @@ mod tests {
         assert_eq!(n2, 3);
         assert_eq!(e2, 2);
 
-        assert_eq!(graph.in_edges("B").unwrap().count(), 0);
-        assert_eq!(graph.out_edges("B").unwrap().count(), 1);
-        assert_eq!(graph.in_edges("C").unwrap().count(), 0);
-        assert_eq!(graph.out_edges("C").unwrap().count(), 1);
-        assert_eq!(graph.in_edges("D").unwrap().count(), 2);
-        assert_eq!(graph.out_edges("D").unwrap().count(), 0);
+        assert_eq!(graph.in_degree("B"), 0);
+        assert_eq!(graph.out_degree("B"), 1);
+        assert_eq!(graph.in_degree("C"), 0);
+        assert_eq!(graph.out_degree("C"), 1);
+        assert_eq!(graph.in_degree("D"), 2);
+        assert_eq!(graph.out_degree("D"), 0);
 
         // remove D and adjacent edges (including incoming edges)
         graph.remove_node("D").expect("node should exist");
@@ -375,9 +375,9 @@ mod tests {
         assert_eq!(n3, 2);
         assert_eq!(e3, 0);
 
-        assert_eq!(graph.out_edges("B").unwrap().count(), 0);
-        assert_eq!(graph.in_edges("B").unwrap().count(), 0);
-        assert_eq!(graph.out_edges("C").unwrap().count(), 0);
-        assert_eq!(graph.in_edges("C").unwrap().count(), 0);
+        assert_eq!(graph.out_degree("B"), 0);
+        assert_eq!(graph.in_degree("B"), 0);
+        assert_eq!(graph.out_degree("C"), 0);
+        assert_eq!(graph.in_degree("C"), 0);
     }
 }
