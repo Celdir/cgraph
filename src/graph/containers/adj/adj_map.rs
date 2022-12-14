@@ -1,4 +1,5 @@
 use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer};
+use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::default::Default;
@@ -68,6 +69,14 @@ where
     NId: Eq + Hash + Copy,
     EId: Eq + Hash + Copy,
 {
+}
+
+impl<NId, EId> WithCapacity for AdjMap<NId, EId> {
+    fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
+        Self {
+            adj: HashMap::with_capacity(node_capacity),
+        }
+    }
 }
 
 pub struct AdjIterator<'a, NId, EId> {

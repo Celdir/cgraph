@@ -78,3 +78,7 @@ pub trait MultiGraph: Graph {
         v: Self::NId,
     ) -> Option<Self::MultiEdgeIterator<'a>>;
 }
+
+pub trait WithCapacity {
+    fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self;
+}

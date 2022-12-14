@@ -1,5 +1,6 @@
 use crate::graph::containers::node::traits::{KeyedNodeContainer, NodeContainer};
 use crate::graph::node::Node;
+use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::default::Default;
@@ -60,6 +61,14 @@ where
         self.nodes.insert(id, node);
 
         previous
+    }
+}
+
+impl<Id, N> WithCapacity for NodeMap<Id, N> {
+    fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
+        Self {
+            nodes: HashMap::with_capacity(node_capacity),
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer};
+use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::hash::Hash;
 use std::iter::Iterator;
@@ -35,7 +36,7 @@ where
 
     fn insert_node(&mut self, u: usize) {
         if u >= self.adj.len() {
-            self.adj.resize(u+1, Vec::new())
+            self.adj.resize(u + 1, Vec::new())
         }
     }
 
@@ -72,6 +73,14 @@ where
 }
 
 impl<EId> OrdinalAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy {}
+
+impl<EId> WithCapacity for AdjList<EId> {
+    fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
+        Self {
+            adj: Vec::with_capacity(node_capacity),
+        }
+    }
+}
 
 pub struct AdjIterator<'a, EId> {
     inner: Iter<'a, (usize, EId)>,

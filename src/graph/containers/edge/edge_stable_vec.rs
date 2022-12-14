@@ -1,11 +1,12 @@
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::edge::Edge;
+use crate::graph::traits::WithCapacity;
+use std::default::Default;
 use std::hash::Hash;
 use std::iter;
 use std::iter::Iterator;
 use std::mem;
 use std::slice;
-use std::default::Default;
 
 #[derive(Default)]
 pub struct EdgeStableVec<NId, E> {
@@ -72,6 +73,15 @@ where
         mem::swap(&mut edge.u, &mut edge.v);
 
         Some(())
+    }
+}
+
+impl<NId, E> WithCapacity for EdgeStableVec<NId, E> {
+    fn with_capacity(_node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            edges: Vec::with_capacity(edge_capacity),
+            edges_len: 0,
+        }
     }
 }
 

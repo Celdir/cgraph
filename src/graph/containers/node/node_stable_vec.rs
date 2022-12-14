@@ -1,5 +1,6 @@
 use crate::graph::containers::node::traits::{NodeContainer, OrdinalNodeContainer};
 use crate::graph::node::Node;
+use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::iter;
 use std::iter::Iterator;
@@ -60,6 +61,15 @@ impl<N> OrdinalNodeContainer for NodeStableVec<N> {
         self.nodes.push(Some(node));
         self.nodes_len += 1;
         id
+    }
+}
+
+impl<N> WithCapacity for NodeStableVec<N> {
+    fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
+        Self {
+            nodes: Vec::with_capacity(node_capacity),
+            nodes_len: 0,
+        }
     }
 }
 

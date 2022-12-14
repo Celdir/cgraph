@@ -1,6 +1,7 @@
 use crate::graph::containers::adj::traits::{
     AdjContainer, DirectedAdjContainer, KeyedAdjContainer, MultiAdjContainer, OrdinalAdjContainer,
 };
+use crate::graph::traits::WithCapacity;
 use std::default::Default;
 
 pub struct Di<AC: AdjContainer> {
@@ -124,6 +125,18 @@ where
         Self {
             out_adj: AC::default(),
             in_adj: AC::default(),
+        }
+    }
+}
+
+impl<AC> WithCapacity for Di<AC>
+where
+    AC: AdjContainer + WithCapacity,
+{
+    fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            out_adj: AC::with_capacity(node_capacity, edge_capacity),
+            in_adj: AC::with_capacity(node_capacity, edge_capacity),
         }
     }
 }

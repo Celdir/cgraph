@@ -7,7 +7,9 @@ use crate::graph::containers::node::traits::{
 };
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
-use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph};
+use crate::graph::traits::{
+    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
+};
 use std::default::Default;
 
 pub struct CGraph<NC, EC, AC> {
@@ -209,6 +211,21 @@ where
             nodes: NC::default(),
             edges: EC::default(),
             adj: AC::default(),
+        }
+    }
+}
+
+impl<NC, EC, AC> WithCapacity for CGraph<NC, EC, AC>
+where
+    NC: WithCapacity,
+    EC: WithCapacity,
+    AC: WithCapacity,
+{
+    fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            nodes: NC::with_capacity(node_capacity, edge_capacity),
+            edges: EC::with_capacity(node_capacity, edge_capacity),
+            adj: AC::with_capacity(node_capacity, edge_capacity),
         }
     }
 }

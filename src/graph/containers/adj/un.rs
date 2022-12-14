@@ -1,6 +1,7 @@
 use crate::graph::containers::adj::traits::{
     AdjContainer, KeyedAdjContainer, MultiAdjContainer, OrdinalAdjContainer, UndirectedAdjContainer,
 };
+use crate::graph::traits::WithCapacity;
 use std::default::Default;
 
 pub struct Un<AC: AdjContainer> {
@@ -84,5 +85,16 @@ where
 {
     fn default() -> Self {
         Self { adj: AC::default() }
+    }
+}
+
+impl<AC> WithCapacity for Un<AC>
+where
+    AC: AdjContainer + WithCapacity,
+{
+    fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            adj: AC::with_capacity(node_capacity, edge_capacity),
+        }
     }
 }
