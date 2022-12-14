@@ -65,7 +65,7 @@ where
 
     fn clear_node(&mut self, u: Self::NId) -> Option<()> {
         let edge_ids: Vec<_> = self.adj.clear_node(u)?;
-        for (_, edge_id) in edge_ids {
+        for (edge_id, _) in edge_ids {
             self.edges
                 .remove_edge(edge_id)
                 .expect("Edge should be present");

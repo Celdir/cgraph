@@ -36,9 +36,9 @@ impl<AC: AdjContainer> AdjContainer for Un<AC> {
         self.adj.remove_node(u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let ids = self.adj.clear_node(u)?;
-        for &(v, edge_id) in &ids {
+        for &(edge_id, v) in &ids {
             self.adj.remove_edge(v, u, edge_id);
         }
         Some(ids)

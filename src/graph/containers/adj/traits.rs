@@ -15,7 +15,7 @@ pub trait AdjContainer {
 
     fn insert_node(&mut self, u: Self::NId);
     fn remove_node(&mut self, u: Self::NId);
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>>;
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>>;
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);

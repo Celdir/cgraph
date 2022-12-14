@@ -43,9 +43,9 @@ where
         self.adj.remove(&u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let u_adj = self.adj.get_mut(&u)?;
-        let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (v, edge_id)).collect();
+        let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (edge_id, v)).collect();
         u_adj.clear();
 
         Some(ids)

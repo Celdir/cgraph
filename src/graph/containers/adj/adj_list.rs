@@ -7,7 +7,7 @@ use std::slice::Iter;
 
 #[derive(Default)]
 pub struct AdjList<EId> {
-    adj: Vec<Vec<(usize, EId)>>,
+    adj: Vec<Vec<(EId, usize)>>,
 }
 
 impl<EId> AdjContainer for AdjList<EId>
@@ -27,7 +27,7 @@ where
 
     // O(deg(u))
     fn between(&self, u: usize, v: usize) -> Option<Self::EId> {
-        Some(self.adj.get(u)?.iter().find(|&&(nid, _)| nid == v)?.1)
+        Some(self.adj.get(u)?.iter().find(|&&(_, nid)| nid == v)?.0)
     }
 
     fn degree(&self, u: Self::NId) -> usize {
@@ -45,7 +45,7 @@ where
         // indices
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let u_adj = self.adj.get_mut(u)?;
         let ids: Vec<_> = u_adj.iter().copied().collect();
         u_adj.clear();
@@ -55,18 +55,18 @@ where
 
     // O(deg(u))
     fn contains_edge(&self, u: usize, v: usize) -> bool {
-        self.adj.get(u).is_some() && self.adj[u].iter().find(|&&(nid, _)| nid == v).is_some()
+        self.adj.get(u).is_some() && self.adj[u].iter().find(|&&(_, nid)| nid == v).is_some()
     }
 
     fn insert_edge(&mut self, u: usize, v: usize, edge_id: Self::EId) {
-        self.adj.get_mut(u).unwrap().push((v, edge_id));
+        self.adj.get_mut(u).unwrap().push((edge_id, v));
     }
 
     // O(deg(u))
-    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, _edge_id: Self::EId) {
+    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
         let index = self.adj[u]
             .iter()
-            .position(|&pair| pair == (v, _edge_id))
+            .position(|&pair| pair == (edge_id, v))
             .unwrap();
         self.adj.get_mut(u).unwrap().swap_remove(index);
     }
@@ -83,7 +83,7 @@ impl<EId> WithCapacity for AdjList<EId> {
 }
 
 pub struct AdjIterator<'a, EId> {
-    inner: Iter<'a, (usize, EId)>,
+    inner: Iter<'a, (EId, usize)>,
 }
 
 impl<'a, EId> Iterator for AdjIterator<'a, EId>
@@ -93,6 +93,6 @@ where
     type Item = (EId, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|&(v, id)| (id, v))
+        self.inner.next().copied()
     }
 }

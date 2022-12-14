@@ -39,9 +39,9 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
         self.in_adj.remove_node(u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::NId, Self::EId)>> {
+    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let mut out_ids = self.out_adj.clear_node(u)?;
-        for &(v, edge_id) in &out_ids {
+        for &(edge_id, v) in &out_ids {
             self.in_adj.remove_edge(v, u, edge_id);
         }
 
@@ -49,7 +49,7 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
             .in_adj
             .clear_node(u)
             .expect("out_adj and in_adj should both have the same nodes");
-        for &(v, edge_id) in &in_ids {
+        for &(edge_id, v) in &in_ids {
             self.out_adj.remove_edge(v, u, edge_id);
         }
 
