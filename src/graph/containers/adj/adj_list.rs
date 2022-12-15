@@ -34,13 +34,13 @@ where
         self.adj.get(u).map_or(0, |adj_list| adj_list.len())
     }
 
-    fn insert_node(&mut self, u: usize) {
+    fn register_node(&mut self, u: usize) {
         if u >= self.adj.len() {
             self.adj.resize(u + 1, Vec::new())
         }
     }
 
-    fn remove_node(&mut self, _u: Self::NId) {
+    fn unregister_node(&mut self, _u: Self::NId) {
         // do nothing, node has already been cleared and deleting the vec would messs up the
         // indices
     }
@@ -54,16 +54,16 @@ where
     }
 
     // O(deg(u))
-    fn contains_edge(&self, u: usize, v: usize) -> bool {
+    fn contains_adj(&self, u: usize, v: usize) -> bool {
         self.adj.get(u).is_some() && self.adj[u].iter().find(|&&(_, nid)| nid == v).is_some()
     }
 
-    fn insert_edge(&mut self, u: usize, v: usize, edge_id: Self::EId) {
+    fn insert_adj(&mut self, u: usize, v: usize, edge_id: Self::EId) {
         self.adj.get_mut(u).unwrap().push((edge_id, v));
     }
 
     // O(deg(u))
-    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+    fn remove_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
         let index = self.adj[u]
             .iter()
             .position(|&pair| pair == (edge_id, v))

@@ -29,20 +29,20 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
         self.out_adj.degree(u)
     }
 
-    fn insert_node(&mut self, u: Self::NId) {
-        self.out_adj.insert_node(u);
-        self.in_adj.insert_node(u);
+    fn register_node(&mut self, u: Self::NId) {
+        self.out_adj.register_node(u);
+        self.in_adj.register_node(u);
     }
 
-    fn remove_node(&mut self, u: Self::NId) {
-        self.out_adj.remove_node(u);
-        self.in_adj.remove_node(u);
+    fn unregister_node(&mut self, u: Self::NId) {
+        self.out_adj.unregister_node(u);
+        self.in_adj.unregister_node(u);
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let mut out_ids = self.out_adj.clear_node(u)?;
         for &(edge_id, v) in &out_ids {
-            self.in_adj.remove_edge(v, u, edge_id);
+            self.in_adj.remove_adj(v, u, edge_id);
         }
 
         let mut in_ids = self
@@ -50,7 +50,7 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
             .clear_node(u)
             .expect("out_adj and in_adj should both have the same nodes");
         for &(edge_id, v) in &in_ids {
-            self.out_adj.remove_edge(v, u, edge_id);
+            self.out_adj.remove_adj(v, u, edge_id);
         }
 
         out_ids.append(&mut in_ids);
@@ -58,23 +58,23 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
         Some(out_ids)
     }
 
-    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
-        self.out_adj.contains_edge(u, v)
+    fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool {
+        self.out_adj.contains_adj(u, v)
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
-        self.out_adj.insert_edge(u, v, edge_id);
-        self.in_adj.insert_edge(v, u, edge_id);
+    fn insert_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.out_adj.insert_adj(u, v, edge_id);
+        self.in_adj.insert_adj(v, u, edge_id);
     }
 
-    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
-        self.out_adj.remove_edge(u, v, edge_id);
-        self.in_adj.remove_edge(v, u, edge_id);
+    fn remove_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.out_adj.remove_adj(u, v, edge_id);
+        self.in_adj.remove_adj(v, u, edge_id);
     }
 }
 
 impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
-    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+    fn out_adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         self.out_adj.adj(u)
     }
 
@@ -82,7 +82,7 @@ impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
         self.out_adj.degree(u)
     }
 
-    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+    fn in_adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         self.in_adj.adj(u)
     }
 
@@ -90,12 +90,12 @@ impl<AC: AdjContainer> DirectedAdjContainer for Di<AC> {
         self.in_adj.degree(u)
     }
 
-    fn reverse_edge(&mut self, u: Self::NId, v: Self::NId, id: Self::EId) {
-        self.out_adj.remove_edge(u, v, id);
-        self.in_adj.remove_edge(v, u, id);
+    fn reverse_adj(&mut self, u: Self::NId, v: Self::NId, id: Self::EId) {
+        self.out_adj.remove_adj(u, v, id);
+        self.in_adj.remove_adj(v, u, id);
 
-        self.out_adj.insert_edge(v, u, id);
-        self.in_adj.insert_edge(u, v, id);
+        self.out_adj.insert_adj(v, u, id);
+        self.in_adj.insert_adj(u, v, id);
     }
 }
 

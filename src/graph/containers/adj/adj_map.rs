@@ -35,11 +35,11 @@ where
         self.adj.get(&u).map_or(0, |adj_map| adj_map.len())
     }
 
-    fn insert_node(&mut self, u: Self::NId) {
+    fn register_node(&mut self, u: Self::NId) {
         self.adj.insert(u, HashMap::new());
     }
 
-    fn remove_node(&mut self, u: Self::NId) {
+    fn unregister_node(&mut self, u: Self::NId) {
         self.adj.remove(&u);
     }
 
@@ -51,15 +51,15 @@ where
         Some(ids)
     }
 
-    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
+    fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool {
         self.adj.get(&u).is_some() && self.adj[&u].contains_key(&v)
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+    fn insert_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
         self.adj.get_mut(&u).unwrap().insert(v, edge_id);
     }
 
-    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, _edge_id: Self::EId) {
+    fn remove_adj(&mut self, u: Self::NId, v: Self::NId, _edge_id: Self::EId) {
         self.adj.get_mut(&u).unwrap().remove(&v);
     }
 }

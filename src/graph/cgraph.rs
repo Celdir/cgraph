@@ -59,7 +59,7 @@ where
 
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N> {
         self.clear_node(id);
-        self.adj.remove_node(id);
+        self.adj.unregister_node(id);
         self.nodes.remove_node(id)
     }
 
@@ -74,7 +74,7 @@ where
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
-        self.adj.contains_edge(u, v)
+        self.adj.contains_adj(u, v)
     }
 
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
@@ -100,14 +100,14 @@ where
         }
 
         let edge_id = self.edges.insert_edge(u, v, edge)?;
-        self.adj.insert_edge(u, v, edge_id);
+        self.adj.insert_adj(u, v, edge_id);
         Some(edge_id)
     }
 
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
         let edge = self.edges.edge(id)?;
         let (u, v) = (edge.u(), edge.v());
-        self.adj.remove_edge(u, v, id);
+        self.adj.remove_adj(u, v, id);
         self.edges.remove_edge(id)
     }
 
@@ -136,7 +136,7 @@ where
     fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         Some(GAdjIterator {
             graph: &self,
-            inner: self.adj.out_edges(u)?,
+            inner: self.adj.out_adj(u)?,
         })
     }
 
@@ -147,7 +147,7 @@ where
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         Some(GAdjIterator {
             graph: &self,
-            inner: self.adj.in_edges(u)?,
+            inner: self.adj.in_adj(u)?,
         })
     }
 
@@ -157,7 +157,7 @@ where
 
     fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
         let edge = self.edge(id)?;
-        self.adj.reverse_edge(edge.u(), edge.v(), id);
+        self.adj.reverse_adj(edge.u(), edge.v(), id);
 
         self.edges.reverse_edge(id).unwrap();
 
@@ -181,7 +181,7 @@ where
 {
     fn insert_node(&mut self, node: Self::N) -> Self::NId {
         let id = self.nodes.insert_node(node);
-        self.adj.insert_node(id);
+        self.adj.register_node(id);
         id
     }
 }
@@ -195,7 +195,7 @@ where
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
         let previous = self.remove_node(id);
         self.nodes.put_node(id, node);
-        self.adj.insert_node(id);
+        self.adj.register_node(id);
         previous
     }
 }

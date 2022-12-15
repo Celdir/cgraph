@@ -28,34 +28,34 @@ impl<AC: AdjContainer> AdjContainer for Un<AC> {
         self.adj.degree(u)
     }
 
-    fn insert_node(&mut self, u: Self::NId) {
-        self.adj.insert_node(u);
+    fn register_node(&mut self, u: Self::NId) {
+        self.adj.register_node(u);
     }
 
-    fn remove_node(&mut self, u: Self::NId) {
-        self.adj.remove_node(u);
+    fn unregister_node(&mut self, u: Self::NId) {
+        self.adj.unregister_node(u);
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
         let ids = self.adj.clear_node(u)?;
         for &(edge_id, v) in &ids {
-            self.adj.remove_edge(v, u, edge_id);
+            self.adj.remove_adj(v, u, edge_id);
         }
         Some(ids)
     }
 
-    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
-        self.adj.contains_edge(u, v)
+    fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool {
+        self.adj.contains_adj(u, v)
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
-        self.adj.insert_edge(u, v, edge_id);
-        self.adj.insert_edge(v, u, edge_id);
+    fn insert_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.adj.insert_adj(u, v, edge_id);
+        self.adj.insert_adj(v, u, edge_id);
     }
 
-    fn remove_edge(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
-        self.adj.remove_edge(u, v, edge_id);
-        self.adj.remove_edge(v, u, edge_id);
+    fn remove_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
+        self.adj.remove_adj(u, v, edge_id);
+        self.adj.remove_adj(v, u, edge_id);
     }
 }
 
