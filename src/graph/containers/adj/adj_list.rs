@@ -1,4 +1,4 @@
-use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer};
+use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer, RawAdjContainer};
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::hash::Hash;
@@ -73,6 +73,7 @@ where
 }
 
 impl<EId> OrdinalAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy {}
+impl<EId> RawAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy {}
 
 impl<EId> WithCapacity for AdjList<EId> {
     fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {

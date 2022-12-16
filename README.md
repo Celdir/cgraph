@@ -11,6 +11,7 @@ TODO
     - G::E must be type Flow, which is a struct holding some integer type storing capacity and flow and provides a method for `residual()`, or `cap - flow`
     - insert normal edges and back edges one after another so back edge can be determined by parity (`edge_id ^ 1`)
     - If FlowGraph holds a CGraph, ideally it should use a raw adjacency container and not Di<> because that would inefficiently store in edges separately even though the flow graph will do that anyway. Refactor the traits (DirectedGraph, DirectedAdjContainer) to let you make a DirectedGraph without using Di<>. One option is to have a marker trait for RawAdjContainer and impl DirectedGraph for graphs where AC: RawAdjContainer. This is more accurate anyway because raw adj containers are directed.
+    - Better option, only allow FlowGraph to hold CGraph where AC: RawAdjContainer, which we know is directed but we don't need to wastefully implement an inefficient version of DirectedGraph.
     - `in_edges` can be calculated by just reversing the edge id parity of every out edge
 
 Future functionality:

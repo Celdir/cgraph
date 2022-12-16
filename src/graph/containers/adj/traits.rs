@@ -47,3 +47,7 @@ pub trait DirectedAdjContainer: AdjContainer {
 pub trait UndirectedAdjContainer: AdjContainer {}
 pub trait OrdinalAdjContainer: AdjContainer {}
 pub trait KeyedAdjContainer: AdjContainer {}
+
+// Raw Adj Containers are base-level containers like adj list. These are directed but don't provide
+// in_adj computation because that requires extra memory.
+pub trait RawAdjContainer: AdjContainer {}

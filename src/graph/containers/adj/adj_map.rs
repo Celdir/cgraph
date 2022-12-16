@@ -1,4 +1,4 @@
-use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer};
+use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer, RawAdjContainer};
 use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -65,6 +65,13 @@ where
 }
 
 impl<NId, EId> KeyedAdjContainer for AdjMap<NId, EId>
+where
+    NId: Eq + Hash + Copy,
+    EId: Eq + Hash + Copy,
+{
+}
+
+impl<NId, EId> RawAdjContainer for AdjMap<NId, EId>
 where
     NId: Eq + Hash + Copy,
     EId: Eq + Hash + Copy,
