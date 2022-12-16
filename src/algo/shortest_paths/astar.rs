@@ -56,11 +56,11 @@ where
 mod tests {
     use crate::algo::shortest_paths::astar::astar;
     use crate::graph::traits::{Graph, KeyedGraph};
-    use crate::graph::mapgraph::MapGraph;
+    use crate::graph::types::UnMapGraph;
 
     #[test]
     fn astar_grid() {
-        let mut graph = MapGraph::<(usize, usize), (), i64>::new();
+        let mut graph = UnMapGraph::<(usize, usize), (), i64>::new();
 
         for x in 0..101 {
             for y in 0..101 {

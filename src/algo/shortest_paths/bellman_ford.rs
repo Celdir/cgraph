@@ -6,8 +6,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ops::Add;
 
-type Cycle<'a, G> =
-    Vec<Edge<'a, <G as Graph>::NId, <G as Graph>::EId, <G as Graph>::E>>;
+type Cycle<'a, G> = Vec<Edge<'a, <G as Graph>::NId, <G as Graph>::EId, <G as Graph>::E>>;
 
 // returns shortest path tree and boolean that is true if negative cycle is found
 pub fn bellman_ford<'a, G>(
@@ -95,8 +94,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
-    use crate::graph::mapgraph::MapGraph;
-    use crate::graph::vecgraph::StableVecGraph;
+    use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
+    use crate::graph::types::{DiListGraph, UnMapGraph};
 
     #[test]
     fn bellman_ford_base_case() {
@@ -105,10 +104,15 @@ mod tests {
         // 2       1
         // |       |
         // C --1-- D
-        let graph = MapGraph::from((
-            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
-            vec![("A", "B", 5), ("A", "C", 2), ("C", "D", 1), ("B", "D", 1)],
-        ));
+        let mut graph = UnMapGraph::with_capacity(4, 4);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5);
+        graph.insert_edge("A", "C", 2);
+        graph.insert_edge("C", "D", 1);
+        graph.insert_edge("B", "D", 1);
 
         let (tree, _) = bellman_ford(&graph, "A");
         assert_eq!(tree.dist("A"), Some(&0));
@@ -127,9 +131,9 @@ mod tests {
         assert_eq!(d_edge.other("D"), "C");
         assert_eq!(d_edge.data(), &1);
 
-        let path_to_b = tree.path("B").unwrap().edges;
-        let ids: Vec<_> = path_to_b.iter().map(|edge| edge.origin()).collect();
-        assert_eq!(ids, vec!["A", "C", "D"]);
+        let path_to_b = tree.path("B").unwrap();
+        let ids: Vec<_> = path_to_b.nodes;
+        assert_eq!(ids, vec!["A", "C", "D", "B"]);
     }
 
     #[test]
@@ -144,19 +148,21 @@ mod tests {
         //    \  |    7
         //     > D---/
         //  legend: A-E are actually 0-4 node ids
-        let graph = StableVecGraph::from((
-            vec![(); 5],
-            vec![
-                (0, 1, 5),
-                (0, 2, 3),
-                (0, 3, 1),
-                (2, 1, 4),
-                (3, 2, 1),
-                (1, 4, 1),
-                (3, 4, 7),
-                (2, 4, 6),
-            ],
-        ));
+        let mut graph = DiListGraph::with_capacity(5, 8);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+
+        graph.insert_edge(0, 1, 5);
+        graph.insert_edge(0, 2, 3);
+        graph.insert_edge(0, 3, 1);
+        graph.insert_edge(2, 1, 4);
+        graph.insert_edge(3, 2, 1);
+        graph.insert_edge(1, 4, 1);
+        graph.insert_edge(3, 4, 7);
+        graph.insert_edge(2, 4, 6);
 
         let (tree, _) = bellman_ford(&graph, 0);
         assert_eq!(tree.dist(0), Some(&0));
@@ -179,9 +185,9 @@ mod tests {
         assert_eq!(e_edge.origin(), 1);
         assert_eq!(e_edge.data(), &1);
 
-        let path_to_e = tree.path(4).unwrap().edges;
-        let ids: Vec<_> = path_to_e.iter().map(|edge| edge.origin()).collect();
-        assert_eq!(ids, vec![0, 1]);
+        let path_to_e = tree.path(4).unwrap();
+        let ids: Vec<_> = path_to_e.nodes;
+        assert_eq!(ids, vec![0, 1, 4]);
 
         let (empty_tree, _) = bellman_ford(&graph, 4);
         assert_eq!(empty_tree.dist(0), None);
@@ -198,10 +204,16 @@ mod tests {
         // 2       -6
         // |       v
         // C <(-2)-D
-        let graph = StableVecGraph::from((
-            vec![(0, ()), (1, ()), (2, ()), (3, ())],
-            vec![(0, 1, 5), (1, 3, -6), (3, 2, -2), (2, 0, 2)],
-        ));
+        let mut graph = DiListGraph::with_capacity(4, 4);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+
+        graph.insert_edge(0, 1, 5);
+        graph.insert_edge(1, 3, -6);
+        graph.insert_edge(3, 2, -2);
+        graph.insert_edge(2, 0, 2);
 
         let (_, cycle) = bellman_ford(&graph, 0);
         assert!(cycle.is_some());
@@ -215,10 +227,15 @@ mod tests {
         // 2       -4
         // |       |
         // C -(-2)-D
-        let graph = MapGraph::from((
-            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
-            vec![("A", "B", 5), ("A", "C", 2), ("C", "D", -2), ("B", "D", -4)],
-        ));
+        let mut graph = UnMapGraph::with_capacity(4, 4);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5);
+        graph.insert_edge("A", "C", 2);
+        graph.insert_edge("C", "D", -2);
+        graph.insert_edge("B", "D", -4);
 
         let (_, cycle) = bellman_ford(&graph, "A");
         assert!(cycle.is_some());
@@ -232,10 +249,15 @@ mod tests {
         //-2       -6
         // |        v
         // C-(-2)-> D
-        let graph = StableVecGraph::from((
-            vec![(); 4],
-            vec![(0, 1, -5), (0, 2, -2), (2, 3, -2), (1, 3, -6)],
-        ));
+        let mut graph = DiListGraph::with_capacity(4, 4);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, -5);
+        graph.insert_edge(0, 2, -2);
+        graph.insert_edge(2, 3, -2);
+        graph.insert_edge(1, 3, -6);
 
         let (tree, cycle) = bellman_ford(&graph, 0);
         assert!(cycle.is_none());

@@ -40,19 +40,19 @@ pub fn topological_sort<'a, G: DirectedGraph>(graph: &'a G) -> Option<Vec<Node<'
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::vecgraph::StableVecGraph;
+    use crate::graph::traits::{Graph, OrdinalGraph, WithCapacity};
+    use crate::graph::types::{DiListGraph};
     use crate::algo::topological_sort::topological_sort;
 
     #[test]
     fn top_sort_triangle() {
-        let graph = StableVecGraph::from((
-            vec![(); 3],
-            vec![
-                (0, 1, ()),
-                (0, 2, ()),
-                (1, 2, ()),
-            ],
-        ));
+        let mut graph = DiListGraph::with_capacity(3, 3);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, ());
+        graph.insert_edge(0, 2, ());
+        graph.insert_edge(1, 2, ());
 
         let expected_order = vec![0, 1, 2];
         let order: Vec<_> = topological_sort(&graph).unwrap().iter().map(|node| node.id()).collect();
@@ -61,14 +61,13 @@ mod tests {
 
     #[test]
     fn top_sort_cycle() {
-        let graph = StableVecGraph::from((
-            vec![(); 3],
-            vec![
-                (0, 1, ()),
-                (1, 2, ()),
-                (2, 0, ()),
-            ],
-        ));
+        let mut graph = DiListGraph::with_capacity(3, 3);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, ());
+        graph.insert_edge(1, 2, ());
+        graph.insert_edge(2, 0, ());
 
         let order: Option<Vec<_>> = topological_sort(&graph);
         assert!(order.is_none());

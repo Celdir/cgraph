@@ -38,14 +38,20 @@ where
         let dist = self.dist(id)?.clone();
 
         let mut edges = Vec::new();
+        let mut nodes = Vec::new();
         let mut cur = id;
+
+        nodes.push(id);
+
         while let Some(edge) = self.parent_edge(cur) {
             cur = edge.other(cur);
             edges.push(edge);
+            nodes.push(cur);
         }
         edges.reverse();
+        nodes.reverse();
 
-        Some(ShortestPath { dist, edges })
+        Some(ShortestPath { dist, edges, nodes })
     }
 }
 
@@ -56,4 +62,5 @@ where
 {
     pub dist: G::E,
     pub edges: Vec<Edge<'a, G::NId, G::EId, G::E>>,
+    pub nodes: Vec<G::NId>,
 }

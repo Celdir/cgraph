@@ -56,28 +56,31 @@ impl<'a, G: Graph> Bfs<'a, G> {
 #[cfg(test)]
 mod tests {
     use crate::iter::bfs::bfs;
-    use crate::graph::mapgraph::MapGraph;
-    use crate::graph::vecgraph::StableVecGraph;
+    use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
+    use crate::graph::types::{DiListGraph, UnMapGraph};
     use std::collections::HashMap;
 
     #[test]
     fn bfs_digraph() {
-        let graph = StableVecGraph::from((
-            vec![(); 7],
-            vec![
-                (0, 1, ()),
-                (0, 2, ()),
-                (1, 3, ()),
-                (1, 4, ()),
-                (2, 5, ()),
-                (2, 6, ()),
-                (6, 0, ()),
-                (5, 2, ()),
-                (5, 6, ()),
-                (3, 2, ()),
-                (5, 1, ()),
-            ],
-        ));
+        let mut graph = DiListGraph::with_capacity(7, 11);
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, ());
+        graph.insert_edge(0, 2, ());
+        graph.insert_edge(1, 3, ());
+        graph.insert_edge(1, 4, ());
+        graph.insert_edge(2, 5, ());
+        graph.insert_edge(2, 6, ());
+        graph.insert_edge(6, 0, ());
+        graph.insert_edge(5, 2, ());
+        graph.insert_edge(5, 6, ());
+        graph.insert_edge(3, 2, ());
+        graph.insert_edge(5, 1, ());
 
         let expected_parents = HashMap::from([(1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2)]);
         for (parent_edge, node) in bfs(&graph, 0) {
@@ -95,11 +98,18 @@ mod tests {
 
     #[test]
     fn bfs_ungraph() {
-        let graph = MapGraph::from((
-            vec![("a", ()), ("b", ()), ("c", ()), ("d", ()), ("e", ())],
-            vec![("a", "b", ()), ("c", "a", ()), ("b", "d", ()), ("d", "e", ()), ("e", "c", ())],
-        ));
-
+        let mut graph = UnMapGraph::with_capacity(5, 5);
+        graph.put_node("a", ());
+        graph.put_node("b", ());
+        graph.put_node("c", ());
+        graph.put_node("d", ());
+        graph.put_node("e", ());
+        graph.insert_edge("a", "b", ());
+        graph.insert_edge("c", "a", ());
+        graph.insert_edge("b", "d", ());
+        graph.insert_edge("d", "e", ());
+        graph.insert_edge("e", "c", ());
+ 
         let expected_parents = HashMap::from([("b", "a"), ("c", "a"), ("d", "b"), ("e", "c")]);
         for (parent_edge, node) in bfs(&graph, "a") {
             match parent_edge {

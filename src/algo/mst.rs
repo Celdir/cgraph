@@ -105,7 +105,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::mst::mst;
-    use crate::graph::mapgraph::MapGraph;
+    use crate::graph::traits::{Graph, KeyedGraph, WithCapacity};
+    use crate::graph::types::{UnMapGraph};
 
     #[test]
     fn mst_base_case() {
@@ -114,10 +115,15 @@ mod tests {
         // 2       1
         // |       |
         // C --1-- D
-        let graph = MapGraph::from((
-            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
-            vec![("A", "B", 5), ("A", "C", 2), ("C", "D", 1), ("B", "D", 1)],
-        ));
+        let mut graph = UnMapGraph::with_capacity(4, 4);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5);
+        graph.insert_edge("A", "C", 2);
+        graph.insert_edge("C", "D", 1);
+        graph.insert_edge("B", "D", 1);
 
         let tree = mst(&graph);
         assert_eq!(tree.weight(), 4);
@@ -131,26 +137,21 @@ mod tests {
         // 2       1       2   10
         // |       |       |  /
         // C --1-- D       G-/
-        let graph = MapGraph::from((
-            vec![
-                ("A", ()),
-                ("B", ()),
-                ("C", ()),
-                ("D", ()),
-                ("E", ()),
-                ("F", ()),
-                ("G", ()),
-            ],
-            vec![
-                ("A", "B", 5),
-                ("A", "C", 2),
-                ("C", "D", 1),
-                ("B", "D", 1),
-                ("E", "F", 5),
-                ("E", "G", 2),
-                ("G", "F", 10),
-            ],
-        ));
+        let mut graph = UnMapGraph::with_capacity(7, 7);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.put_node("E", ());
+        graph.put_node("F", ());
+        graph.put_node("G", ());
+        graph.insert_edge("A", "B", 5);
+        graph.insert_edge("A", "C", 2);
+        graph.insert_edge("C", "D", 1);
+        graph.insert_edge("B", "D", 1);
+        graph.insert_edge("E", "F", 5);
+        graph.insert_edge("E", "G", 2);
+        graph.insert_edge("G", "F", 10);
 
         let tree = mst(&graph);
         assert_eq!(tree.weight(), 11);
