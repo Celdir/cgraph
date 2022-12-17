@@ -6,7 +6,6 @@ TODO
  - Idea for graph impl: Store edges in single list sorted by (u, v). Adjacency is tracked by storing for each node the start index of edges for that node. The DiGraph version can have a separate list for in edges. Insertion / removal is O(N+E), but iteration is very fast since it's just one vec. Call it FlatAdjList / FlatGraph
  - For containers, panic on invalid input. Invariants should be enforced at higher level (in CGraph). Clean up container contracts / spell out behavior assumptions explicitly. e.g. adj container `insert_node` has no return value. it should either return Option<> to denote error or panic on any invalid input
  - Change old unit tests to use CGraph types and then deprecate old VecGraph and MapGraph
- - Add From<> to CGraph
  - Max flow:
     - Create FlowGraph struct that holds G: DirectedGraph and implements Graph, but does custom logic for managing back edges and such, and provides special methods like `back_edges()`.
     - G::E must be type Flow, which is a struct holding some integer type storing capacity and flow and provides a method for `residual()`, or `cap - flow`

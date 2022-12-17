@@ -49,10 +49,18 @@ pub trait Graph {
 
 pub trait OrdinalGraph: Graph {
     fn insert_node(&mut self, node: Self::N) -> Self::NId;
+
+    fn from_ordinal(nodes: Vec<Self::N>, edges: Vec<(Self::NId, Self::NId, Self::E)>) -> Self
+    where
+        Self: WithCapacity;
 }
 
 pub trait KeyedGraph: Graph {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N>;
+
+    fn from_keyed(nodes: Vec<(Self::NId, Self::N)>, edges: Vec<(Self::NId, Self::NId, Self::E)>) -> Self
+    where
+        Self: WithCapacity;
 }
 
 pub trait DirectedGraph: Graph {

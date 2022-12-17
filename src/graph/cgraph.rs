@@ -184,6 +184,23 @@ where
         self.adj.register_node(id);
         id
     }
+
+    fn from_ordinal(nodes: Vec<Self::N>, edges: Vec<(Self::NId, Self::NId, Self::E)>) -> Self
+    where
+        Self: WithCapacity,
+    {
+        let mut g = Self::with_capacity(nodes.len(), edges.len());
+
+        for n in nodes {
+            g.insert_node(n);
+        }
+        for (u, v, e) in edges {
+            g.insert_edge(u, v, e)
+                .expect("node ids should refer to valid nodes");
+        }
+
+        g
+    }
 }
 
 impl<NC, EC, AC> KeyedGraph for CGraph<NC, EC, AC>
@@ -197,6 +214,26 @@ where
         self.nodes.put_node(id, node);
         self.adj.register_node(id);
         previous
+    }
+
+    fn from_keyed(
+        nodes: Vec<(Self::NId, Self::N)>,
+        edges: Vec<(Self::NId, Self::NId, Self::E)>,
+    ) -> Self
+    where
+        Self: WithCapacity,
+    {
+        let mut g = Self::with_capacity(nodes.len(), edges.len());
+
+        for (id, n) in nodes {
+            g.put_node(id, n);
+        }
+        for (u, v, e) in edges {
+            g.insert_edge(u, v, e)
+                .expect("node ids should refer to valid nodes");
+        }
+
+        g
     }
 }
 
@@ -528,5 +565,57 @@ mod tests {
         assert_eq!(graph.in_degree(1), 0);
         assert_eq!(graph.out_degree(2), 0);
         assert_eq!(graph.in_degree(2), 0);
+    }
+
+    #[test]
+    fn unmap_iteration() {
+        // A ----- B
+        // |  \ /  |
+        // |   X   |
+        // |  / \  |
+        // C ----- D
+        let graph = UnMapGraph::from_keyed(
+            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
+            vec![
+                ("A", "B", 1),
+                ("B", "C", 1),
+                ("C", "D", 1),
+                ("A", "D", 1),
+                ("A", "C", 1),
+                ("D", "B", 1),
+            ],
+        );
+
+        let mut a_adj: Vec<_> = graph
+            .adj("A")
+            .expect("A should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
+
+        let mut b_adj: Vec<_> = graph
+            .adj("B")
+            .expect("B should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        b_adj.sort();
+        assert_eq!(b_adj, vec![("A", 1), ("C", 1), ("D", 1)]);
+
+        let mut c_adj: Vec<_> = graph
+            .adj("C")
+            .expect("C should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        c_adj.sort();
+        assert_eq!(c_adj, vec![("A", 1), ("B", 1), ("D", 1)]);
+
+        let mut d_adj: Vec<_> = graph
+            .adj("D")
+            .expect("D should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        d_adj.sort();
+        assert_eq!(d_adj, vec![("A", 1), ("B", 1), ("C", 1)]);
     }
 }
