@@ -1,3 +1,5 @@
+# CGraph - composable graph
+
 TODO
  - Reconsider all of the Option<> return values in functions that take node and edge ids. It might be better to panic on invalid ids instead, and document "valid ids" as a precondition of using the library
  - For containers like Vec<Node>, mark with an Ordinal marker trait. When AdjContainer is Ordinal, require NodeContainer to be ordinal also
@@ -11,6 +13,10 @@ TODO
     - If FlowGraph holds a CGraph, ideally it should use a raw adjacency container and not Di<> because that would inefficiently store in edges separately even though the flow graph will do that anyway. Refactor the traits (DirectedGraph, DirectedAdjContainer) to let you make a DirectedGraph without using Di<>. One option is to have a marker trait for RawAdjContainer and impl DirectedGraph for graphs where AC: RawAdjContainer. This is more accurate anyway because raw adj containers are directed.
     - Better option, only allow FlowGraph to hold CGraph where AC: RawAdjContainer, which we know is directed but we don't need to wastefully implement an inefficient version of DirectedGraph.
     - `in_edges` can be calculated by just reversing the edge id parity of every out edge
+ - Add reindex() operation for stable containers that gets rid of empty slots and returns a map of old indices to new indices
+ - Adj containers to implement:
+    - Vec<Map>
+    - FlatGraph
 
 Future functionality:
 - Max flow
