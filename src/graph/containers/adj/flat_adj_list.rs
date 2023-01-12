@@ -62,10 +62,15 @@ where
         })
     }
 
-    // O(deg(u))
-    // TODO: binary search to make this log(E)
+    // O(log(E))
     fn between(&self, u: usize, v: usize) -> Option<Self::EId> {
-        Some(self.adj(u)?.find(|&(_, nid)| nid == v)?.0)
+        match self
+            .adj
+            .binary_search_by(|probe| (probe.0, probe.1).cmp(&(u, v)))
+        {
+            Ok(pos) => Some(self.adj[pos].2),
+            Err(_) => None,
+        }
     }
 
     fn degree(&self, u: Self::NId) -> usize {
@@ -99,11 +104,15 @@ where
         Some(ids)
     }
 
-    // O(deg(u))
-    // TODO: binary search to make this log(E)
+    // O(log(E))
     fn contains_adj(&self, u: usize, v: usize) -> bool {
-        self.adj(u)
-            .map_or(false, |mut iter| iter.find(|&(_, nid)| nid == v).is_some())
+        match self
+            .adj
+            .binary_search_by(|probe| (probe.0, probe.1).cmp(&(u, v)))
+        {
+            Ok(_) => true,
+            Err(_) => false,
+        }
     }
 
     fn insert_adj(&mut self, u: usize, v: usize, edge_id: Self::EId) {

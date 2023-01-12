@@ -734,6 +734,9 @@ mod tests {
         assert_eq!(graph.in_degree(3), 2);
         assert_eq!(graph.out_degree(3), 0);
 
+        assert!(graph.contains_edge(1, 3));
+        assert!(!graph.contains_edge(0, 1));
+
         // remove D and adjacent edges (including incoming edges)
         graph.remove_node(3).expect("node should exist");
         let (n3, e3) = graph.len();
