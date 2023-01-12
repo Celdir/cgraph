@@ -1,6 +1,7 @@
 use crate::graph::cgraph::CGraph;
 use crate::graph::containers::adj::adj_map::AdjMap;
 use crate::graph::containers::adj::adj_list::AdjList;
+use crate::graph::containers::adj::flat_adj_list::FlatAdjList;
 use crate::graph::containers::adj::di::Di;
 use crate::graph::containers::adj::un::Un;
 use crate::graph::containers::edge::edge_stable_vec::EdgeStableVec;
@@ -15,3 +16,6 @@ pub type UnMapGraph<Id, N, E> = CGraph<NodeMap<Id, N>, EdgeStableVec<Id, E>, Un<
 
 pub type DiListGraph<N, E> = CGraph<NodeStableVec<N>, EdgeStableVec<usize, E>, Di<AdjList<usize>>>;
 pub type UnListGraph<N, E> = CGraph<NodeStableVec<N>, EdgeStableVec<usize, E>, Un<AdjList<usize>>>;
+
+pub type DiFlatGraph<N, E> = CGraph<NodeStableVec<N>, EdgeStableVec<usize, E>, Di<FlatAdjList<usize>>>;
+pub type UnFlatGraph<N, E> = CGraph<NodeStableVec<N>, EdgeStableVec<usize, E>, Un<FlatAdjList<usize>>>;

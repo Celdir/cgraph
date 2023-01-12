@@ -315,7 +315,9 @@ where
 #[cfg(test)]
 mod tests {
     use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph, OrdinalGraph};
-    use crate::graph::types::{DiListGraph, DiMapGraph, UnListGraph, UnMapGraph};
+    use crate::graph::types::{
+        DiFlatGraph, DiListGraph, DiMapGraph, UnFlatGraph, UnListGraph, UnMapGraph,
+    };
 
     #[test]
     fn unmap_puts_and_removes() {
@@ -617,5 +619,138 @@ mod tests {
             .collect();
         d_adj.sort();
         assert_eq!(d_adj, vec![("A", 1), ("B", 1), ("C", 1)]);
+    }
+
+    #[test]
+    fn unflat_puts_and_removes() {
+        // N0 --5-- N1
+        // |         |
+        // 2         1
+        // |         |
+        // N2 --1-- N3
+        let mut graph = UnFlatGraph::new();
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(0, 2, 2).expect("nodes should exist");
+        graph.insert_edge(2, 3, 1).expect("nodes should exist");
+        graph.insert_edge(1, 3, 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_adj: Vec<_> = graph
+            .adj(0)
+            .expect("A should have adj edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec![1, 2]);
+
+        // edges should be undirected and the same id each direction
+        assert!(graph.between(0, 1).is_some());
+        assert!(graph.between(1, 0).is_some());
+        assert_eq!(
+            graph.between(0, 1).unwrap().id(),
+            graph.between(1, 0).unwrap().id()
+        );
+
+        // removes A and adjacent edges
+        graph.remove_node(0).expect("node should exist");
+        assert!(graph.node(0).is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.degree(1), 1);
+        assert_eq!(graph.degree(2), 1);
+        assert_eq!(graph.degree(3), 2);
+
+        // single deleted edge should be gone
+        let edge_id = graph.between(3, 2).unwrap().id();
+        graph.remove_edge(edge_id);
+
+        assert_eq!(graph.degree(2), 0);
+        assert_eq!(graph.degree(3), 1);
+    }
+
+    #[test]
+    fn diflat_puts_and_removes() {
+        // N0 --5-> N1
+        // |         |
+        // 2         1
+        // v         v
+        // N2 --1-> N3
+        let mut graph = DiFlatGraph::new();
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_node(());
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(0, 2, 2).expect("nodes should exist");
+        graph.insert_edge(2, 3, 1).expect("nodes should exist");
+        graph.insert_edge(1, 3, 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_out: Vec<_> = graph
+            .out_edges(0)
+            .expect("N0 should have out edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_out.sort();
+        assert_eq!(a_out, vec![1, 2]);
+
+        let mut d_in: Vec<_> = graph
+            .in_edges(3)
+            .expect("N3 should have in edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        d_in.sort();
+        assert_eq!(d_in, vec![1, 2]);
+
+        // edges should be directed
+        assert!(graph.between(0, 1).is_some());
+        assert!(graph.between(1, 0).is_none());
+
+        // remove A and adjacent edges
+        graph.remove_node(0).expect("node should exist");
+        assert!(graph.node(0).is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.in_degree(1), 0);
+        assert_eq!(graph.out_degree(1), 1);
+        assert_eq!(graph.in_degree(2), 0);
+        assert_eq!(graph.out_degree(2), 1);
+        assert_eq!(graph.in_degree(3), 2);
+        assert_eq!(graph.out_degree(3), 0);
+
+        // remove D and adjacent edges (including incoming edges)
+        graph.remove_node(3).expect("node should exist");
+        let (n3, e3) = graph.len();
+        assert_eq!(n3, 2);
+        assert_eq!(e3, 0);
+
+        assert_eq!(graph.out_degree(1), 0);
+        assert_eq!(graph.in_degree(1), 0);
+        assert_eq!(graph.out_degree(2), 0);
+        assert_eq!(graph.in_degree(2), 0);
+
+        graph.insert_edge(1, 2, 1).expect("nodes should exist");
+        graph.insert_edge(2, 1, 1).expect("nodes should exist");
+        assert_eq!(graph.out_degree(1), 1);
+        assert_eq!(graph.in_degree(1), 1);
+        assert_eq!(graph.out_degree(2), 1);
+        assert_eq!(graph.in_degree(2), 1);
+        assert_eq!(graph.len(), (2, 2));
     }
 }
