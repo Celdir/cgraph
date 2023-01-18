@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 #[derive(PartialEq)]
 pub enum Direction {
     In,
@@ -14,8 +16,18 @@ pub struct Edge<'a, NodeId, EdgeId, E> {
 }
 
 impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
-    pub fn new(id: EdgeId, origin: NodeId, destination: NodeId, data: &'a E) -> Edge<'a, NodeId, EdgeId, E> {
-        Edge { id, origin, destination, data }
+    pub fn new(
+        id: EdgeId,
+        origin: NodeId,
+        destination: NodeId,
+        data: &'a E,
+    ) -> Edge<'a, NodeId, EdgeId, E> {
+        Edge {
+            id,
+            origin,
+            destination,
+            data,
+        }
     }
 
     pub fn id(&self) -> EdgeId {
@@ -25,7 +37,7 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
     pub fn origin(&self) -> NodeId {
         self.origin
     }
-    
+
     pub fn u(&self) -> NodeId {
         self.origin
     }
@@ -48,6 +60,14 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
 
     pub fn data(&self) -> &'a E {
         &self.data
+    }
+}
+
+impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Deref for Edge<'a, NodeId, EdgeId, E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        self.data
     }
 }
 
