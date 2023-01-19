@@ -577,7 +577,7 @@ mod tests {
         // |  / \  |
         // C ----- D
         let graph = UnMapGraph::from_keyed(
-            vec![("A", ()), ("B", ()), ("C", ()), ("D", ())],
+            vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
             vec![
                 ("A", "B", 1),
                 ("B", "C", 1),
@@ -595,6 +595,14 @@ mod tests {
             .collect();
         a_adj.sort();
         assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
+
+        for node in graph.nodes() {
+            assert_eq!(*node, 0);
+        }
+
+        for edge in graph.edges() {
+            assert_eq!(*edge, 1);
+        }
 
         let mut b_adj: Vec<_> = graph
             .adj("B")
