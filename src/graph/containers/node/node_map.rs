@@ -46,12 +46,8 @@ where
         self.nodes.get(&id).map(|n| Node::new(id, n))
     }
 
-    fn node_data(&self, id: Id) -> Option<&N> {
-        self.nodes.get(&id)
-    }
-
-    fn node_data_mut(&mut self, id: Id) -> Option<&mut N> {
-        self.nodes.get_mut(&id)
+    fn node_mut(&mut self, id: Id) -> Option<NodeMut<Id, N>> {
+        self.nodes.get_mut(&id).map(|n| NodeMut::new(id, n))
     }
 
     fn remove_node(&mut self, id: Id) -> Option<N> {

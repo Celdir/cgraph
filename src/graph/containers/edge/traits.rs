@@ -1,4 +1,4 @@
-use crate::graph::edge::Edge;
+use crate::graph::edge::{Edge, EdgeMut};
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -10,14 +10,17 @@ pub trait EdgeContainer {
     type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
     where
         Self: 'a;
+    type EdgeMutIterator<'a>: Iterator<Item = EdgeMut<'a, Self::NId, Self::EId, Self::E>>
+    where
+        Self: 'a;
 
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
+    fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a>;
 
     fn len(&self) -> usize;
 
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn edge_data(&self, id: Self::EId) -> Option<&Self::E>;
-    fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E>;
+    fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
 
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;

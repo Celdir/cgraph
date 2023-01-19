@@ -47,12 +47,11 @@ impl<N> NodeContainer for NodeStableVec<N> {
         }
     }
 
-    fn node_data(&self, id: usize) -> Option<&N> {
-        self.nodes.get(id)?.as_ref()
-    }
-
-    fn node_data_mut(&mut self, id: usize) -> Option<&mut N> {
-        self.nodes.get_mut(id)?.as_mut()
+    fn node_mut(&mut self, id: usize) -> Option<NodeMut<usize, N>> {
+        match self.nodes.get_mut(id) {
+            Some(Some(node)) => Some(NodeMut::new(id, node)),
+            _ => None,
+        }
     }
 
     fn remove_node(&mut self, id: usize) -> Option<N> {

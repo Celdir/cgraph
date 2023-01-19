@@ -5,8 +5,8 @@ use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::containers::node::traits::{
     KeyedNodeContainer, NodeContainer, OrdinalNodeContainer,
 };
-use crate::graph::edge::Edge;
-use crate::graph::node::Node;
+use crate::graph::edge::{Edge, EdgeMut};
+use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
 };
@@ -31,7 +31,10 @@ where
 
     type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
     type NodeMutIterator<'a> = NC::NodeMutIterator<'a> where Self: 'a;
+
     type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
+    type EdgeMutIterator<'a> = EC::EdgeMutIterator<'a> where Self: 'a;
+
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
@@ -46,12 +49,8 @@ where
         self.nodes.node(id)
     }
 
-    fn node_data(&self, id: Self::NId) -> Option<&Self::N> {
-        self.nodes.node_data(id)
-    }
-
-    fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N> {
-        self.nodes.node_data_mut(id)
+    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
+        self.nodes.node_mut(id)
     }
 
     fn degree(&self, u: Self::NId) -> usize {
@@ -82,17 +81,13 @@ where
         self.edges.edge(id)
     }
 
+    fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+        self.edges.edge_mut(id)
+    }
+
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         let edge_id = self.adj.between(u, v)?;
         self.edges.edge(edge_id)
-    }
-
-    fn edge_data(&self, id: Self::EId) -> Option<&Self::E> {
-        self.edges.edge_data(id)
-    }
-
-    fn edge_data_mut(&mut self, id: Self::EId) -> Option<&mut Self::E> {
-        self.edges.edge_data_mut(id)
     }
 
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
@@ -122,6 +117,10 @@ where
 
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
         self.edges.edges()
+    }
+
+    fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a> {
+        self.edges.edges_mut()
     }
 
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
@@ -584,22 +583,14 @@ mod tests {
         let mut graph = UnMapGraph::from_keyed(
             vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
             vec![
-                ("A", "B", 1),
-                ("B", "C", 1),
-                ("C", "D", 1),
-                ("A", "D", 1),
-                ("A", "C", 1),
-                ("D", "B", 1),
+                ("A", "B", 2),
+                ("B", "C", 2),
+                ("C", "D", 2),
+                ("A", "D", 2),
+                ("A", "C", 2),
+                ("D", "B", 2),
             ],
         );
-
-        let mut a_adj: Vec<_> = graph
-            .adj("A")
-            .expect("A should have adj edges")
-            .map(|(edge, node)| (node.id(), edge.data().clone()))
-            .collect();
-        a_adj.sort();
-        assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
 
         for mut node in graph.nodes_mut() {
             assert_eq!(*node, 0);
@@ -610,9 +601,22 @@ mod tests {
             assert_eq!(*node, 10);
         }
 
+        for mut edge in graph.edges_mut() {
+            assert_eq!(*edge, 2);
+            *edge = 1;
+        }
+
         for edge in graph.edges() {
             assert_eq!(*edge, 1);
         }
+
+        let mut a_adj: Vec<_> = graph
+            .adj("A")
+            .expect("A should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
 
         let mut b_adj: Vec<_> = graph
             .adj("B")
@@ -637,6 +641,12 @@ mod tests {
             .collect();
         d_adj.sort();
         assert_eq!(d_adj, vec![("A", 1), ("B", 1), ("C", 1)]);
+
+        *graph.node_mut("A").unwrap() = 3;
+        assert_eq!(*graph.node("A").unwrap(), 3);
+
+        *graph.edge_mut(0).unwrap() = 5;
+        assert_eq!(*graph.edge(0).unwrap(), 5);
     }
 
     #[test]

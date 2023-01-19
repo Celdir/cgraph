@@ -20,8 +20,7 @@ pub trait NodeContainer {
 
     fn contains_node(&self, id: Self::NId) -> bool;
     fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
-    fn node_data(&self, id: Self::NId) -> Option<&Self::N>;
-    fn node_data_mut(&mut self, id: Self::NId) -> Option<&mut Self::N>;
+    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>>;
 
     fn remove_node(&mut self, id: Self::NId) -> Option<Self::N>;
 }

@@ -1,5 +1,5 @@
 use crate::graph::containers::edge::traits::EdgeContainer;
-use crate::graph::edge::Edge;
+use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::hash::Hash;
@@ -29,10 +29,17 @@ where
     type EId = usize;
 
     type EdgeIterator<'a> = EdgeIterator<'a, NId, E> where Self: 'a;
+    type EdgeMutIterator<'a> = EdgeMutIterator<'a, NId, E> where Self: 'a;
 
     fn edges(&self) -> EdgeIterator<NId, E> {
         EdgeIterator {
             inner: self.edges.iter().enumerate(),
+        }
+    }
+
+    fn edges_mut(&mut self) -> EdgeMutIterator<NId, E> {
+        EdgeMutIterator {
+            inner: self.edges.iter_mut().enumerate(),
         }
     }
 
@@ -47,12 +54,11 @@ where
         }
     }
 
-    fn edge_data(&self, id: usize) -> Option<&E> {
-        Some(&self.edges.get(id)?.as_ref()?.e)
-    }
-
-    fn edge_data_mut(&mut self, id: usize) -> Option<&mut E> {
-        Some(&mut self.edges.get_mut(id)?.as_mut()?.e)
+    fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+        match self.edges.get_mut(id) {
+            Some(Some(edge)) => Some(EdgeMut::new(id, edge.u, edge.v, &mut edge.e)),
+            _ => None,
+        }
     }
 
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
@@ -102,6 +108,28 @@ where
             if opt.is_some() {
                 let edge = opt.as_ref().unwrap();
                 return Some(Edge::new(id, edge.u, edge.v, &edge.e));
+            }
+        }
+    }
+}
+
+pub struct EdgeMutIterator<'a, NId, E> {
+    inner: iter::Enumerate<slice::IterMut<'a, Option<InternalEdge<NId, E>>>>,
+}
+
+impl<'a, NId, E> Iterator for EdgeMutIterator<'a, NId, E>
+where
+    NId: 'a + Eq + Hash + Copy,
+    E: 'a,
+{
+    type Item = EdgeMut<'a, NId, usize, E>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (id, opt) = self.inner.next()?;
+            if opt.is_some() {
+                let edge = opt.as_mut().unwrap();
+                return Some(EdgeMut::new(id, edge.u, edge.v, &mut edge.e));
             }
         }
     }
