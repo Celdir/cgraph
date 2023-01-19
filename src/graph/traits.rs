@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::node::Node;
+use crate::graph::node::{Node, NodeMut};
 use std::hash::Hash;
 
 pub trait Graph {
@@ -9,6 +9,9 @@ pub trait Graph {
     type EId: Eq + Hash + Copy;
 
     type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
+    where
+        Self: 'a;
+    type NodeMutIterator<'a>: Iterator<Item = NodeMut<'a, Self::NId, Self::N>>
     where
         Self: 'a;
     type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
@@ -42,6 +45,7 @@ pub trait Graph {
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
+    fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a>;
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;

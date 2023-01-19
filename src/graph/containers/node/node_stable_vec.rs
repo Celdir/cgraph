@@ -1,5 +1,5 @@
 use crate::graph::containers::node::traits::{NodeContainer, OrdinalNodeContainer};
-use crate::graph::node::Node;
+use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::iter;
@@ -18,10 +18,17 @@ impl<N> NodeContainer for NodeStableVec<N> {
     type N = N;
 
     type NodeIterator<'a> = NodeIterator<'a, N> where Self: 'a;
+    type NodeMutIterator<'a> = NodeMutIterator<'a, N> where Self: 'a;
 
     fn nodes(&self) -> NodeIterator<N> {
         NodeIterator {
             inner: self.nodes.iter().enumerate(),
+        }
+    }
+
+    fn nodes_mut(&mut self) -> NodeMutIterator<N> {
+        NodeMutIterator {
+            inner: self.nodes.iter_mut().enumerate(),
         }
     }
 
@@ -86,6 +93,24 @@ impl<'a, N> Iterator for NodeIterator<'a, N> {
             if opt.is_some() {
                 let node = opt.as_ref().unwrap();
                 return Some(Node::new(id, node));
+            }
+        }
+    }
+}
+
+pub struct NodeMutIterator<'a, N> {
+    inner: iter::Enumerate<slice::IterMut<'a, Option<N>>>,
+}
+
+impl<'a, N> Iterator for NodeMutIterator<'a, N> {
+    type Item = NodeMut<'a, usize, N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (id, opt) = self.inner.next()?;
+            if opt.is_some() {
+                let node = opt.as_mut().unwrap();
+                return Some(NodeMut::new(id, node));
             }
         }
     }

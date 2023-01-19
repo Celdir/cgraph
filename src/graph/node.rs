@@ -33,8 +33,8 @@ pub struct NodeMut<'a, NodeId, N> {
 }
 
 impl<'a, NodeId: Copy, N> NodeMut<'a, NodeId, N> {
-    pub fn new(id: NodeId, data: &'a mut N) -> Node<'a, NodeId, N> {
-        Node { id, data }
+    pub fn new(id: NodeId, data: &'a mut N) -> NodeMut<'a, NodeId, N> {
+        NodeMut { id, data }
     }
 
     pub fn id(&self) -> NodeId {

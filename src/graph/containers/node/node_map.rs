@@ -1,7 +1,7 @@
 use crate::graph::containers::node::traits::{KeyedNodeContainer, NodeContainer};
-use crate::graph::node::Node;
+use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::WithCapacity;
-use std::collections::hash_map::Iter;
+use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use std::default::Default;
 use std::hash::Hash;
@@ -20,10 +20,17 @@ where
     type N = N;
 
     type NodeIterator<'a> = NodeIterator<'a, Id, N> where Self: 'a;
+    type NodeMutIterator<'a> = NodeMutIterator<'a, Id, N> where Self: 'a;
 
     fn nodes(&self) -> NodeIterator<Id, N> {
         NodeIterator {
             inner: self.nodes.iter(),
+        }
+    }
+
+    fn nodes_mut(&mut self) -> NodeMutIterator<Id, N> {
+        NodeMutIterator {
+            inner: self.nodes.iter_mut(),
         }
     }
 
@@ -81,5 +88,17 @@ impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(id, n)| Node::new(*id, n))
+    }
+}
+
+pub struct NodeMutIterator<'a, Id, N> {
+    inner: IterMut<'a, Id, N>,
+}
+
+impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeMutIterator<'a, Id, N> {
+    type Item = NodeMut<'a, Id, N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(id, n)| NodeMut::new(*id, n))
     }
 }

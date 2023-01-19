@@ -30,6 +30,7 @@ where
     type EId = EC::EId;
 
     type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
+    type NodeMutIterator<'a> = NC::NodeMutIterator<'a> where Self: 'a;
     type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
 
@@ -113,6 +114,10 @@ where
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
         self.nodes.nodes()
+    }
+
+    fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a> {
+        self.nodes.nodes_mut()
     }
 
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
@@ -576,7 +581,7 @@ mod tests {
         // |   X   |
         // |  / \  |
         // C ----- D
-        let graph = UnMapGraph::from_keyed(
+        let mut graph = UnMapGraph::from_keyed(
             vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
             vec![
                 ("A", "B", 1),
@@ -596,8 +601,13 @@ mod tests {
         a_adj.sort();
         assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
 
-        for node in graph.nodes() {
+        for mut node in graph.nodes_mut() {
             assert_eq!(*node, 0);
+            *node = 10;
+        }
+
+        for node in graph.nodes() {
+            assert_eq!(*node, 10);
         }
 
         for edge in graph.edges() {

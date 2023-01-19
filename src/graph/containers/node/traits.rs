@@ -1,4 +1,4 @@
-use crate::graph::node::Node;
+use crate::graph::node::{Node, NodeMut};
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -9,8 +9,12 @@ pub trait NodeContainer {
     type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
     where
         Self: 'a;
+    type NodeMutIterator<'a>: Iterator<Item = NodeMut<'a, Self::NId, Self::N>>
+    where
+        Self: 'a;
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
+    fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a>;
 
     fn len(&self) -> usize;
 
