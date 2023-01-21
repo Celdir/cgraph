@@ -30,6 +30,14 @@ pub trait Graph {
     >
     where
         Self: 'a;
+    type AdjMutIterator<'a>: Iterator<
+        Item = (
+            EdgeMut<'a, Self::NId, Self::EId, Self::E>,
+            NodeMut<'a, Self::NId, Self::N>,
+        ),
+    >
+    where
+        Self: 'a;
 
     fn len(&self) -> (usize, usize);
 
@@ -44,15 +52,19 @@ pub trait Graph {
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
+    fn between_mut(&mut self, u: Self::NId, v: Self::NId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId>;
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E>;
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
     fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a>;
+
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
     fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a>;
+
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>>;
 }
 
 pub trait OrdinalGraph: Graph {
@@ -76,9 +88,11 @@ pub trait KeyedGraph: Graph {
 
 pub trait DirectedGraph: Graph {
     fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>>;
     fn out_degree(&self, u: Self::NId) -> usize;
 
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>>;
     fn in_degree(&self, u: Self::NId) -> usize;
 
     fn reverse_edge(&mut self, id: Self::EId) -> Option<()>;

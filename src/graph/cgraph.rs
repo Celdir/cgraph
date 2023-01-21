@@ -36,6 +36,7 @@ where
     type EdgeMutIterator<'a> = EC::EdgeMutIterator<'a> where Self: 'a;
 
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
+    type AdjMutIterator<'a> = GAdjMutIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
@@ -90,6 +91,11 @@ where
         self.edges.edge(edge_id)
     }
 
+    fn between_mut(&mut self, u: Self::NId, v: Self::NId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+        let edge_id = self.adj.between(u, v)?;
+        self.edges.edge_mut(edge_id)
+    }
+
     fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
         if !self.contains_node(u) || !self.contains_node(v) {
             return None;
@@ -129,6 +135,14 @@ where
             inner: self.adj.adj(u)?,
         })
     }
+
+    fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        Some(GAdjMutIterator {
+            nodes: &mut self.nodes,
+            edges: &mut self.edges,
+            inner: self.adj.adj(u)?,
+        })
+    }
 }
 
 impl<NC, EC, AC> DirectedGraph for CGraph<NC, EC, AC>
@@ -144,6 +158,14 @@ where
         })
     }
 
+    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        Some(GAdjMutIterator {
+            nodes: &mut self.nodes,
+            edges: &mut self.edges,
+            inner: self.adj.out_adj(u)?,
+        })
+    }
+
     fn out_degree(&self, u: Self::NId) -> usize {
         self.adj.out_degree(u)
     }
@@ -151,6 +173,14 @@ where
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         Some(GAdjIterator {
             graph: &self,
+            inner: self.adj.in_adj(u)?,
+        })
+    }
+
+    fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        Some(GAdjMutIterator {
+            nodes: &mut self.nodes,
+            edges: &mut self.edges,
             inner: self.adj.in_adj(u)?,
         })
     }
@@ -313,6 +343,48 @@ where
                     .expect("id from adj iterator must refer to real edge"),
             )
         })
+    }
+}
+
+pub struct GAdjMutIterator<'a, NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: 'a + AdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    nodes: &'a mut NC,
+    edges: &'a mut EC,
+    inner: AC::AdjIterator<'a>,
+}
+
+impl<'a, NC, EC, AC> Iterator for GAdjMutIterator<'a, NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: 'a + AdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    type Item = (
+        EdgeMut<'a, NC::NId, EC::EId, EC::E>,
+        NodeMut<'a, NC::NId, NC::N>,
+    );
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (edge_id, node_id) = self.inner.next()?;
+
+        unsafe {
+            let edges: *mut EC = self.edges;
+            let nodes: *mut NC = self.nodes;
+            Some((
+                edges
+                    .as_mut()?
+                    .edge_mut(edge_id)
+                    .expect("id from adj iterator must refer to real edge"),
+                nodes
+                    .as_mut()?
+                    .node_mut(node_id)
+                    .expect("id from adj iterator must refer to real edge"),
+            ))
+        }
     }
 }
 
@@ -647,6 +719,19 @@ mod tests {
 
         *graph.edge_mut(0).unwrap() = 5;
         assert_eq!(*graph.edge(0).unwrap(), 5);
+        *graph.edge_mut(0).unwrap() = 1;
+
+        for (mut edge_mut, mut node_mut) in graph.adj_mut("A").unwrap() {
+            assert_eq!(*edge_mut, 1);
+            assert_eq!(*node_mut, 10);
+            *edge_mut = 2;
+            *node_mut = 0;
+        }
+
+        for (edge, node) in graph.adj("A").unwrap() {
+            assert_eq!(*edge, 2);
+            assert_eq!(*node, 0);
+        }
     }
 
     #[test]
