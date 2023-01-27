@@ -1,7 +1,9 @@
 # CGraph - composable graph
 
 TODO
+ - Move keys and reverse_keys into single Mapping struct for Keyed? Or maybe just use bimap crate?
  - Add `between_multi_mut()`.
+ - implement MultiGraph for CGraph and MultiAdj for relevant adj containers
  - Possible refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Create a wrapper struct KeyedGraph that maintains a map of keys to ordinals and an underlying ordinal graph, and provides a `put_node` method.
  - Reconsider all of the Option<> return values in functions that take node and edge ids. It might be better to panic on invalid ids instead, and document "valid ids" as a precondition of using the library
  - For containers like Vec<Node>, mark with an Ordinal marker trait. When AdjContainer is Ordinal, require NodeContainer to be ordinal also

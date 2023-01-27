@@ -44,6 +44,10 @@ impl<'a, NodeId: Copy, N> NodeMut<'a, NodeId, N> {
     pub fn data(&mut self) -> &mut N {
         self.data
     }
+
+    pub fn into_data(self) -> &'a mut N {
+        self.data
+    }
 }
 
 impl<'a, NodeId, N> Deref for NodeMut<'a, NodeId, N> {

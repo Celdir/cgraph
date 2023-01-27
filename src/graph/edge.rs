@@ -124,6 +124,10 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> EdgeMut<'a, NodeId, EdgeId, E>
     pub fn data(&mut self) -> &mut E {
         self.data
     }
+
+    pub fn into_data(self) -> &'a mut E {
+        self.data
+    }
 }
 
 impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Deref for EdgeMut<'a, NodeId, EdgeId, E> {
