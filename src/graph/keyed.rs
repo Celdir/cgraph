@@ -172,6 +172,115 @@ where
     }
 }
 
+impl<G, Id> WithCapacity for Keyed<G, Id>
+where
+    G: Graph + WithCapacity,
+    Id: Eq + Hash + Copy,
+{
+    fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
+        Self {
+            graph: G::with_capacity(node_capacity, edge_capacity),
+            keys: BiMap::new(),
+        }
+    }
+}
+
+impl<G, Id> KeyedGraph for Keyed<G, Id>
+where
+    G: OrdinalGraph,
+    Id: Eq + Hash + Copy,
+{
+    fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
+        let key = self.graph.insert_node(node);
+        self.keys.insert(id, key);
+        None
+    }
+
+    fn from_keyed(
+        nodes: Vec<(Self::NId, Self::N)>,
+        edges: Vec<(Self::NId, Self::NId, Self::E)>,
+    ) -> Self
+    where
+        Self: WithCapacity,
+    {
+        let mut g = Self::with_capacity(nodes.len(), edges.len());
+        for (id, node) in nodes {
+            g.put_node(id, node);
+        }
+        for (u, v, edge) in edges {
+            g.insert_edge(u, v, edge)
+                .expect("node ids in edge should refer to valid node");
+        }
+
+        g
+    }
+}
+
+impl<G, Id> DirectedGraph for Keyed<G, Id>
+where
+    G: DirectedGraph,
+    Id: Eq + Hash + Copy,
+{
+    fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjIterator {
+            keys: &self.keys,
+            inner: self.graph.out_edges(key)?,
+        })
+    }
+
+    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjMutIterator {
+            keys: &self.keys,
+            inner: self.graph.out_edges_mut(key)?,
+        })
+    }
+
+    fn out_degree(&self, u: Self::NId) -> usize {
+        let key_opt = self.keys.get_by_left(&u);
+        match key_opt {
+            Some(&key) => self.graph.out_degree(key),
+            _ => 0,
+        }
+    }
+
+    fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjIterator {
+            keys: &self.keys,
+            inner: self.graph.in_edges(key)?,
+        })
+    }
+
+    fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjMutIterator {
+            keys: &self.keys,
+            inner: self.graph.in_edges_mut(key)?,
+        })
+    }
+
+    fn in_degree(&self, u: Self::NId) -> usize {
+        let key_opt = self.keys.get_by_left(&u);
+        match key_opt {
+            Some(&key) => self.graph.in_degree(key),
+            _ => 0,
+        }
+    }
+
+    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
+        self.graph.reverse_edge(id)
+    }
+}
+
+impl<G, Id> UndirectedGraph for Keyed<G, Id>
+where
+    G: UndirectedGraph,
+    Id: Eq + Hash + Copy,
+{
+}
+
 pub struct NodeIterator<'a, G, Id>
 where
     G: 'a + Graph,
