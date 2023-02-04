@@ -244,10 +244,14 @@ where
     AC: KeyedAdjContainer<NId = NC::NId, EId = EC::EId>,
 {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
-        let previous = self.remove_node(id);
+        if self.contains_node(id) {
+            let node_data = self.node_mut(id).unwrap().into_data();
+            return Some(std::mem::replace(node_data, node));
+        }
+
         self.nodes.put_node(id, node);
         self.adj.register_node(id);
-        previous
+        None
     }
 
     fn from_keyed(
