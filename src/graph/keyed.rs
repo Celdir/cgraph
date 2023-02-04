@@ -205,6 +205,11 @@ where
     Id: Eq + Hash + Copy,
 {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
+        if self.contains_node(id) {
+            let node_data = self.node_mut(id).unwrap().into_data();
+            return Some(std::mem::replace(node_data, node));
+        }
+
         let key = self.graph.insert_node(node);
         self.keys.insert(id, key);
         None
