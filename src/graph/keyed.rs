@@ -4,13 +4,14 @@ use crate::graph::traits::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
 };
 
+use std::default::Default;
 use std::hash::Hash;
 
 use bimap::BiMap;
 
 pub struct Keyed<G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     graph: G,
@@ -19,7 +20,7 @@ where
 
 impl<G, Id> Graph for Keyed<G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type N = G::N;
@@ -172,9 +173,22 @@ where
     }
 }
 
+impl<G, Id> Default for Keyed<G, Id>
+where
+    G: OrdinalGraph + Default,
+    Id: Eq + Hash + Copy,
+{
+    fn default() -> Self {
+        Self {
+            graph: G::default(),
+            keys: BiMap::new(),
+        }
+    }
+}
+
 impl<G, Id> WithCapacity for Keyed<G, Id>
 where
-    G: Graph + WithCapacity,
+    G: OrdinalGraph + WithCapacity,
     Id: Eq + Hash + Copy,
 {
     fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
@@ -218,7 +232,7 @@ where
 
 impl<G, Id> DirectedGraph for Keyed<G, Id>
 where
-    G: DirectedGraph,
+    G: DirectedGraph + OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
@@ -276,9 +290,19 @@ where
 
 impl<G, Id> UndirectedGraph for Keyed<G, Id>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
+}
+
+impl<G, Id> Keyed<G, Id>
+where
+    G: OrdinalGraph + Default,
+    Id: Eq + Hash + Copy,
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 pub struct NodeIterator<'a, G, Id>
@@ -292,7 +316,7 @@ where
 
 impl<'a, G, Id> Iterator for NodeIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = Node<'a, Id, G::N>;
@@ -313,7 +337,7 @@ where
 
 impl<'a, G, Id> Iterator for NodeMutIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = NodeMut<'a, Id, G::N>;
@@ -334,7 +358,7 @@ where
 
 impl<'a, G, Id> Iterator for EdgeIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = Edge<'a, Id, G::EId, G::E>;
@@ -355,7 +379,7 @@ where
 
 impl<'a, G, Id> Iterator for EdgeMutIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = EdgeMut<'a, Id, G::EId, G::E>;
@@ -376,7 +400,7 @@ where
 
 impl<'a, G, Id> Iterator for AdjIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = (Edge<'a, Id, G::EId, G::E>, Node<'a, Id, G::N>);
@@ -397,7 +421,7 @@ where
 
 impl<'a, G, Id> Iterator for AdjMutIterator<'a, G, Id>
 where
-    G: Graph,
+    G: OrdinalGraph,
     Id: Eq + Hash + Copy,
 {
     type Item = (EdgeMut<'a, Id, G::EId, G::E>, NodeMut<'a, Id, G::N>);
@@ -487,4 +511,217 @@ where
     EId: 'a + Eq + Copy,
 {
     (map_edge_mut(keys, adj.0), map_node_mut(keys, adj.1))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::keyed::Keyed;
+    use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph};
+    use crate::graph::types::{DiFlatGraph, UnFlatGraph};
+
+    #[test]
+    fn un_keyed_puts_and_removes() {
+        // A --5-- B
+        // |       |
+        // 2       1
+        // |       |
+        // C --1-- D
+        let mut graph = Keyed::<UnFlatGraph<(), i32>, &str>::new();
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_adj: Vec<_> = graph
+            .adj("A")
+            .expect("A should have adj edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec!["B", "C"]);
+
+        // edges should be undirected and the same id each direction
+        assert!(graph.between("A", "B").is_some());
+        assert!(graph.between("B", "A").is_some());
+        assert_eq!(
+            graph.between("A", "B").unwrap().id(),
+            graph.between("B", "A").unwrap().id()
+        );
+
+        // removes A and adjacent edges
+        graph.remove_node("A").expect("node should exist");
+        assert!(graph.node("A").is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.degree("B"), 1);
+        assert_eq!(graph.degree("C"), 1);
+        assert_eq!(graph.degree("D"), 2);
+
+        // single deleted edge should be gone
+        let edge_id = graph.between("D", "C").unwrap().id();
+        graph.remove_edge(edge_id);
+
+        assert_eq!(graph.degree("C"), 0);
+        assert_eq!(graph.degree("D"), 1);
+    }
+
+    #[test]
+    fn di_keyed_puts_and_removes() {
+        // A --5-> B
+        // |       |
+        // 2       1
+        // v       v
+        // C --1-> D
+        let mut graph = Keyed::<DiFlatGraph<(), i32>, &str>::new();
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let (n, e) = graph.len();
+        assert_eq!(n, 4);
+        assert_eq!(e, 4);
+
+        let mut a_out: Vec<_> = graph
+            .out_edges("A")
+            .expect("A should have adj edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        a_out.sort();
+        assert_eq!(a_out, vec!["B", "C"]);
+
+        // edges should be directed
+        assert!(graph.between("A", "B").is_some());
+        assert!(graph.between("B", "A").is_none());
+
+        let mut d_in: Vec<_> = graph
+            .in_edges("D")
+            .expect("D should have in edges")
+            .map(|(_, node)| node.id())
+            .collect();
+        d_in.sort();
+        assert_eq!(d_in, vec!["B", "C"]);
+
+        // removes A and adjacent edges
+        graph.remove_node("A").expect("node should exist");
+        assert!(graph.node("A").is_none());
+
+        let (n2, e2) = graph.len();
+        assert_eq!(n2, 3);
+        assert_eq!(e2, 2);
+
+        assert_eq!(graph.out_degree("B"), 1);
+        assert_eq!(graph.in_degree("B"), 0);
+        assert_eq!(graph.out_degree("C"), 1);
+        assert_eq!(graph.in_degree("C"), 0);
+        assert_eq!(graph.out_degree("D"), 0);
+        assert_eq!(graph.in_degree("D"), 2);
+
+        assert!(graph.contains_edge("B", "D"));
+        assert!(!graph.contains_edge("A", "B"));
+    }
+
+    #[test]
+    fn un_keyed_iteration() {
+        // A ----- B
+        // |  \ /  |
+        // |   X   |
+        // |  / \  |
+        // C ----- D
+        let mut graph = Keyed::<UnFlatGraph<i32, i32>, &str>::from_keyed(
+            vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
+            vec![
+                ("A", "B", 2),
+                ("B", "C", 2),
+                ("C", "D", 2),
+                ("A", "D", 2),
+                ("A", "C", 2),
+                ("D", "B", 2),
+            ],
+        );
+
+        for mut node in graph.nodes_mut() {
+            assert_eq!(*node, 0);
+            *node = 10;
+        }
+
+        for node in graph.nodes() {
+            assert_eq!(*node, 10);
+        }
+
+        for mut edge in graph.edges_mut() {
+            assert_eq!(*edge, 2);
+            *edge = 1;
+        }
+
+        for edge in graph.edges() {
+            assert_eq!(*edge, 1);
+        }
+
+        let mut a_adj: Vec<_> = graph
+            .adj("A")
+            .expect("A should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        a_adj.sort();
+        assert_eq!(a_adj, vec![("B", 1), ("C", 1), ("D", 1)]);
+
+        let mut b_adj: Vec<_> = graph
+            .adj("B")
+            .expect("B should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        b_adj.sort();
+        assert_eq!(b_adj, vec![("A", 1), ("C", 1), ("D", 1)]);
+
+        let mut c_adj: Vec<_> = graph
+            .adj("C")
+            .expect("C should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        c_adj.sort();
+        assert_eq!(c_adj, vec![("A", 1), ("B", 1), ("D", 1)]);
+
+        let mut d_adj: Vec<_> = graph
+            .adj("D")
+            .expect("D should have adj edges")
+            .map(|(edge, node)| (node.id(), edge.data().clone()))
+            .collect();
+        d_adj.sort();
+        assert_eq!(d_adj, vec![("A", 1), ("B", 1), ("C", 1)]);
+
+        *graph.node_mut("A").unwrap() = 3;
+        assert_eq!(*graph.node("A").unwrap(), 3);
+
+        *graph.edge_mut(0).unwrap() = 5;
+        assert_eq!(*graph.edge(0).unwrap(), 5);
+        *graph.edge_mut(0).unwrap() = 1;
+
+        for (mut edge_mut, mut node_mut) in graph.adj_mut("A").unwrap() {
+            assert_eq!(*edge_mut, 1);
+            assert_eq!(*node_mut, 10);
+            *edge_mut = 2;
+            *node_mut = 0;
+        }
+
+        for (edge, node) in graph.adj("A").unwrap() {
+            assert_eq!(*edge, 2);
+            assert_eq!(*node, 0);
+        }
+    }
 }

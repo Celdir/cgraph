@@ -1,7 +1,7 @@
 # CGraph - composable graph
 
 TODO
- - Move keys and reverse_keys into single Mapping struct for Keyed? Or maybe just use bimap crate?
+ - Consider changing all `put_node` methods to not remove existing edges when node already exists, just change the node data
  - Add `between_multi_mut()`.
  - implement MultiGraph for CGraph and MultiAdj for relevant adj containers
  - Possible refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Create a wrapper struct KeyedGraph that maintains a map of keys to ordinals and an underlying ordinal graph, and provides a `put_node` method.
