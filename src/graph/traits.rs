@@ -99,6 +99,7 @@ pub trait DirectedGraph: Graph {
 }
 
 pub trait UndirectedGraph: Graph {}
+pub trait RawGraph: Graph {}
 
 pub trait MultiGraph: Graph {
     type MultiEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>

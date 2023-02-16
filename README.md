@@ -1,6 +1,7 @@
 # CGraph - composable graph
 
 TODO
+ - Move `_mut()` iteration methods to their own trait, e.g. GraphMut
  - Add `between_multi_mut()`.
  - implement MultiGraph for CGraph and MultiAdj for relevant adj containers
  - Possible refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Create a wrapper struct KeyedGraph that maintains a map of keys to ordinals and an underlying ordinal graph, and provides a `put_node` method.
@@ -12,6 +13,7 @@ TODO
  - Max flow:
     - Create FlowGraph struct that holds G: DirectedGraph and implements Graph, but does custom logic for managing back edges and such, and provides special methods like `back_edges()`.
     - G::E must be type Flow, which is a struct holding some integer type storing capacity and flow and provides a method for `residual()`, or `cap - flow`
+	- Forward edges start with 0 flow and N capacity, and saturate at N flow and N capacity. Back edges start with 0 flow and 0 capacity, and saturate at -N flow and 0 capacity
     - insert normal edges and back edges one after another so back edge can be determined by parity (`edge_id ^ 1`)
     - If FlowGraph holds a CGraph, ideally it should use a raw adjacency container and not Di<> because that would inefficiently store in edges separately even though the flow graph will do that anyway. Refactor the traits (DirectedGraph, DirectedAdjContainer) to let you make a DirectedGraph without using Di<>. One option is to have a marker trait for RawAdjContainer and impl DirectedGraph for graphs where AC: RawAdjContainer. This is more accurate anyway because raw adj containers are directed.
     - Better option, only allow FlowGraph to hold CGraph where AC: RawAdjContainer, which we know is directed but we don't need to wastefully implement an inefficient version of DirectedGraph.

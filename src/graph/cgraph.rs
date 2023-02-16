@@ -1,5 +1,5 @@
 use crate::graph::containers::adj::traits::{
-    AdjContainer, DirectedAdjContainer, KeyedAdjContainer, UndirectedAdjContainer,
+    AdjContainer, DirectedAdjContainer, KeyedAdjContainer, RawAdjContainer, UndirectedAdjContainer,
 };
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::containers::node::traits::{
@@ -8,7 +8,7 @@ use crate::graph::containers::node::traits::{
 use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
-    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
+    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, RawGraph, UndirectedGraph, WithCapacity,
 };
 use std::default::Default;
 
@@ -91,7 +91,11 @@ where
         self.edges.edge(edge_id)
     }
 
-    fn between_mut(&mut self, u: Self::NId, v: Self::NId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+    fn between_mut(
+        &mut self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
         let edge_id = self.adj.between(u, v)?;
         self.edges.edge_mut(edge_id)
     }
@@ -204,6 +208,14 @@ where
     NC: NodeContainer,
     EC: EdgeContainer<NId = NC::NId>,
     AC: UndirectedAdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+}
+
+impl<NC, EC, AC> RawGraph for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: RawAdjContainer<NId = NC::NId, EId = EC::EId>,
 {
 }
 
