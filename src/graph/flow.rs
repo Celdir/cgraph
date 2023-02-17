@@ -2,9 +2,10 @@ use crate::graph::cgraph::CGraph;
 use crate::graph::containers::adj::traits::RawAdjContainer;
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::containers::node::traits::NodeContainer;
-use crate::graph::edge::Edge;
+use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
+use std::cmp::PartialOrd;
 use std::ops::{Add, Neg, Sub};
 
 pub trait FlowGraph: Graph {
@@ -40,6 +41,7 @@ pub trait FlowGraph: Graph {
     fn forward_adj<'a>(&'a self, u: Self::NId) -> Option<Self::ForwardAdjIterator<'a>>;
 
     fn back_edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
+    fn back_edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
 
     // adds flow edge and back edge, returns ids for both
     fn insert_flow_edge(
@@ -51,10 +53,13 @@ pub trait FlowGraph: Graph {
 
     // removes front and back edge, returns value for front edge and id + value for back edge
     fn remove_flow_edge(&mut self, id: Self::EId) -> Option<(Self::E, (Self::EId, Self::E))>;
+
+    // TODO: replace 'static str with custom error type
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), &'static str>;
 }
 
 pub trait FlowValue:
-    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + Copy + Default
+    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + PartialOrd + Copy + Default
 {
 }
 impl FlowValue for i8 {}
@@ -100,6 +105,14 @@ impl<V: FlowValue> Flow<V> {
 
     pub fn residual(&self) -> V {
         self.capacity - self.flow
+    }
+
+    pub fn increase_flow(&mut self, delta: V) -> Result<(), &'static str> {
+        if self.flow + delta > self.capacity {
+            return Err("insufficient remaining capacity to increase flow");
+        }
+        self.flow = self.flow + delta;
+        Ok(())
     }
 }
 
@@ -152,6 +165,11 @@ where
         self.edge(id ^ 1)
     }
 
+    fn back_edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+        // forward and back edges are adjacent, so flipping the parity of the id gives the back edge id
+        self.edge_mut(id ^ 1)
+    }
+
     // adds flow edge and back edge, returns ids for both
     fn insert_flow_edge(
         &mut self,
@@ -171,6 +189,17 @@ where
         let edge_val = self.remove_edge(id)?;
         let back_id = id ^ 1;
         Some((edge_val, (back_id, self.remove_edge(back_id).unwrap())))
+    }
+
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), &'static str> {
+        self.edge_mut(id)
+            .ok_or("edge not found")?
+            .increase_flow(delta)?;
+        self.back_edge_mut(id)
+            .ok_or("back edge not found")?
+            .increase_flow(-delta)?;
+
+        Ok(())
     }
 }
 
