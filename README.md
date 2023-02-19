@@ -1,6 +1,8 @@
 # CGraph - composable graph
 
 TODO
+ - Use thiserror (https://docs.rs/thiserror/latest/thiserror/) to define custom error types for FlowGraph and other results.
+ - Migrate some existing return types from Option<> to Result<>, especially those that are supposed to mutate the graph. Consider where to keep Option<>, like perhaps for `node()` and `edge()`
  - Move `_mut()` iteration methods to their own trait, e.g. GraphMut
  - Add `between_multi_mut()`.
  - implement MultiGraph for CGraph and MultiAdj for relevant adj containers
