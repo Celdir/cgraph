@@ -56,6 +56,8 @@ pub trait FlowGraph: Graph {
 
     // TODO: replace 'static str with custom error type
     fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), &'static str>;
+
+    fn reset_flow(&mut self);
 }
 
 pub trait FlowValue:
@@ -113,6 +115,10 @@ impl<V: FlowValue> Flow<V> {
         }
         self.flow = self.flow + delta;
         Ok(())
+    }
+
+    pub fn reset_flow(&mut self) {
+        self.flow = V::default();
     }
 }
 
@@ -200,6 +206,12 @@ where
             .increase_flow(-delta)?;
 
         Ok(())
+    }
+
+    fn reset_flow(&mut self) {
+        for mut edge in self.edges_mut() {
+            edge.reset_flow();
+        }
     }
 }
 
