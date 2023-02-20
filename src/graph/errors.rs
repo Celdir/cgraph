@@ -8,15 +8,15 @@ pub enum GraphError {
     #[error("edge not found in graph")]
     EdgeNotFound,
 
+    #[error("flow error: {0}")]
+    FlowError(FlowError),
+
     #[error("unknown graph error")]
     Unknown,
 }
 
 #[derive(Error, Debug)]
-pub enum FlowGraphError {
-    #[error("forward edge not found in flow graph")]
-    ForwardEdgeNotFound,
-
+pub enum FlowError {
     #[error("back edge not found in flow graph")]
     BackEdgeNotFound,
 

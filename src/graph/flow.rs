@@ -3,7 +3,7 @@ use crate::graph::containers::adj::traits::RawAdjContainer;
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::containers::node::traits::NodeContainer;
 use crate::graph::edge::{Edge, EdgeMut};
-use crate::graph::errors::{FlowGraphError, GraphError};
+use crate::graph::errors::{FlowError, GraphError};
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use std::cmp::PartialOrd;
@@ -59,7 +59,7 @@ pub trait FlowGraph: Graph {
     ) -> Result<(Self::E, (Self::EId, Self::E)), GraphError>;
 
     // TODO: replace 'static str with custom error type
-    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), FlowGraphError>;
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), GraphError>;
 
     fn reset_flow(&mut self);
 }
@@ -113,9 +113,9 @@ impl<V: FlowValue> Flow<V> {
         self.capacity - self.flow
     }
 
-    pub fn increase_flow(&mut self, delta: V) -> Result<(), FlowGraphError> {
+    pub fn increase_flow(&mut self, delta: V) -> Result<(), GraphError> {
         if self.flow + delta > self.capacity {
-            return Err(FlowGraphError::InsufficientCapacity);
+            return Err(GraphError::FlowError(FlowError::InsufficientCapacity));
         }
         self.flow = self.flow + delta;
         Ok(())
@@ -204,12 +204,12 @@ where
         Ok((edge_val, (back_id, self.remove_edge(back_id).unwrap())))
     }
 
-    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), FlowGraphError> {
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), GraphError> {
         self.edge_mut(id)
-            .ok_or(FlowGraphError::ForwardEdgeNotFound)?
+            .ok_or(GraphError::EdgeNotFound)?
             .increase_flow(delta)?;
         self.back_edge_mut(id)
-            .ok_or(FlowGraphError::BackEdgeNotFound)?
+            .ok_or(GraphError::FlowError(FlowError::BackEdgeNotFound))?
             .increase_flow(-delta)?;
 
         Ok(())
