@@ -1,3 +1,4 @@
+use crate::graph::errors::GraphError;
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -15,7 +16,7 @@ pub trait AdjContainer {
 
     fn register_node(&mut self, u: Self::NId);
     fn unregister_node(&mut self, u: Self::NId);
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>>;
+    fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError>;
 
     fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool;
     fn insert_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId);

@@ -1,4 +1,5 @@
 use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer, RawAdjContainer};
+use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::hash::Hash;
@@ -45,12 +46,12 @@ where
         // indices
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
-        let u_adj = self.adj.get_mut(u)?;
+    fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
+        let u_adj = self.adj.get_mut(u).ok_or(GraphError::NodeNotFound)?;
         let ids: Vec<_> = u_adj.iter().copied().collect();
         u_adj.clear();
 
-        Some(ids)
+        Ok(ids)
     }
 
     // O(deg(u))

@@ -3,6 +3,7 @@ use crate::graph::containers::adj::traits::RawAdjContainer;
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::containers::node::traits::NodeContainer;
 use crate::graph::edge::{Edge, EdgeMut};
+use crate::graph::errors::{FlowGraphError, GraphError};
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use std::cmp::PartialOrd;
@@ -49,13 +50,16 @@ pub trait FlowGraph: Graph {
         u: Self::NId,
         v: Self::NId,
         capacity: Self::FlowVal,
-    ) -> Option<(Self::EId, Self::EId)>;
+    ) -> Result<(Self::EId, Self::EId), GraphError>;
 
     // removes front and back edge, returns value for front edge and id + value for back edge
-    fn remove_flow_edge(&mut self, id: Self::EId) -> Option<(Self::E, (Self::EId, Self::E))>;
+    fn remove_flow_edge(
+        &mut self,
+        id: Self::EId,
+    ) -> Result<(Self::E, (Self::EId, Self::E)), GraphError>;
 
     // TODO: replace 'static str with custom error type
-    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), &'static str>;
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), FlowGraphError>;
 
     fn reset_flow(&mut self);
 }
@@ -109,9 +113,9 @@ impl<V: FlowValue> Flow<V> {
         self.capacity - self.flow
     }
 
-    pub fn increase_flow(&mut self, delta: V) -> Result<(), &'static str> {
+    pub fn increase_flow(&mut self, delta: V) -> Result<(), FlowGraphError> {
         if self.flow + delta > self.capacity {
-            return Err("insufficient remaining capacity to increase flow");
+            return Err(FlowGraphError::InsufficientCapacity);
         }
         self.flow = self.flow + delta;
         Ok(())
@@ -182,27 +186,30 @@ where
         u: Self::NId,
         v: Self::NId,
         capacity: Self::FlowVal,
-    ) -> Option<(Self::EId, Self::EId)> {
+    ) -> Result<(Self::EId, Self::EId), GraphError> {
         let forward_id = self.insert_edge(u, v, Flow::new_forward(capacity))?;
         let back_id = self
             .insert_edge(u, v, Flow::new_back())
             .expect("error inserting back edge in flow graph");
-        Some((forward_id, back_id))
+        Ok((forward_id, back_id))
     }
 
     // removes front and back edge, returns value for front edge and id + value for back edge
-    fn remove_flow_edge(&mut self, id: Self::EId) -> Option<(Self::E, (Self::EId, Self::E))> {
+    fn remove_flow_edge(
+        &mut self,
+        id: Self::EId,
+    ) -> Result<(Self::E, (Self::EId, Self::E)), GraphError> {
         let edge_val = self.remove_edge(id)?;
         let back_id = id ^ 1;
-        Some((edge_val, (back_id, self.remove_edge(back_id).unwrap())))
+        Ok((edge_val, (back_id, self.remove_edge(back_id).unwrap())))
     }
 
-    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), &'static str> {
+    fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), FlowGraphError> {
         self.edge_mut(id)
-            .ok_or("edge not found")?
+            .ok_or(FlowGraphError::ForwardEdgeNotFound)?
             .increase_flow(delta)?;
         self.back_edge_mut(id)
-            .ok_or("back edge not found")?
+            .ok_or(FlowGraphError::BackEdgeNotFound)?
             .increase_flow(-delta)?;
 
         Ok(())

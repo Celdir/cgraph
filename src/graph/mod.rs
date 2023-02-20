@@ -1,6 +1,7 @@
 pub mod traits;
 //pub use self::graph::Graph;
 //
+pub mod errors;
 pub mod edge_traits;
 
 mod simple_graph;

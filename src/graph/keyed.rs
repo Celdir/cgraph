@@ -1,4 +1,5 @@
 use crate::graph::edge::{Edge, EdgeMut};
+use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
@@ -64,14 +65,14 @@ where
         }
     }
 
-    fn remove_node(&mut self, id: Self::NId) -> Option<Self::N> {
-        let &key = self.keys.get_by_left(&id)?;
+    fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
+        let &key = self.keys.get_by_left(&id).ok_or(GraphError::NodeNotFound)?;
         self.keys.remove_by_left(&id);
         self.graph.remove_node(key)
     }
 
-    fn clear_node(&mut self, id: Self::NId) -> Option<()> {
-        let &key = self.keys.get_by_left(&id)?;
+    fn clear_node(&mut self, id: Self::NId) -> Result<(), GraphError> {
+        let &key = self.keys.get_by_left(&id).ok_or(GraphError::NodeNotFound)?;
         self.graph.clear_node(key)
     }
 
@@ -118,12 +119,20 @@ where
         }
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
-        let (&u_key, &v_key) = (self.keys.get_by_left(&u)?, self.keys.get_by_left(&v)?);
+    fn insert_edge(
+        &mut self,
+        u: Self::NId,
+        v: Self::NId,
+        edge: Self::E,
+    ) -> Result<Self::EId, GraphError> {
+        let (&u_key, &v_key) = (
+            self.keys.get_by_left(&u).ok_or(GraphError::NodeNotFound)?,
+            self.keys.get_by_left(&v).ok_or(GraphError::NodeNotFound)?,
+        );
         self.graph.insert_edge(u_key, v_key, edge)
     }
 
-    fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
+    fn remove_edge(&mut self, id: Self::EId) -> Result<Self::E, GraphError> {
         self.graph.remove_edge(id)
     }
 
@@ -288,7 +297,7 @@ where
         }
     }
 
-    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
+    fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
         self.graph.reverse_edge(id)
     }
 }

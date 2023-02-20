@@ -1,4 +1,5 @@
 use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer, RawAdjContainer};
+use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::cmp::Ord;
 use std::default::Default;
@@ -92,16 +93,16 @@ where
         // indices
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
-        let ids: Vec<_> = self.adj(u)?.collect();
-        let (s, e) = self.edge_range(u)?;
+    fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
+        let ids: Vec<_> = self.adj(u).ok_or(GraphError::NodeNotFound)?.collect();
+        let (s, e) = self.edge_range(u).ok_or(GraphError::NodeNotFound)?;
 
         self.adj.drain(s..e);
 
         let start_delta = -((e - s) as i32);
         self.reindex_from(u + 1, start_delta);
 
-        Some(ids)
+        Ok(ids)
     }
 
     // O(log(E))

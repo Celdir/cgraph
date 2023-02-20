@@ -1,6 +1,7 @@
 use crate::graph::containers::adj::traits::{
     AdjContainer, DirectedAdjContainer, KeyedAdjContainer, MultiAdjContainer, OrdinalAdjContainer,
 };
+use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 
@@ -39,7 +40,7 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
         self.in_adj.unregister_node(u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
+    fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
         let mut out_ids = self.out_adj.clear_node(u)?;
         for &(edge_id, v) in &out_ids {
             self.in_adj.remove_adj(v, u, edge_id);
@@ -55,7 +56,7 @@ impl<AC: AdjContainer> AdjContainer for Di<AC> {
 
         out_ids.append(&mut in_ids);
 
-        Some(out_ids)
+        Ok(out_ids)
     }
 
     fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool {

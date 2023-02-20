@@ -1,4 +1,5 @@
 use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer, RawAdjContainer};
+use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -43,12 +44,12 @@ where
         self.adj.remove(&u);
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<Vec<(Self::EId, Self::NId)>> {
-        let u_adj = self.adj.get_mut(&u)?;
+    fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
+        let u_adj = self.adj.get_mut(&u).ok_or(GraphError::NodeNotFound)?;
         let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (edge_id, v)).collect();
         u_adj.clear();
 
-        Some(ids)
+        Ok(ids)
     }
 
     fn contains_adj(&self, u: Self::NId, v: Self::NId) -> bool {

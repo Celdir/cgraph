@@ -1,5 +1,6 @@
 use crate::graph::containers::edge::traits::EdgeContainer;
 use crate::graph::edge::{Edge, EdgeMut};
+use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
 use std::hash::Hash;
@@ -61,11 +62,11 @@ where
         }
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
+    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Self::EId {
         let id = self.edges.len();
         self.edges.push(Some(InternalEdge { u, v, e: edge }));
         self.edges_len += 1;
-        Some(id)
+        id
     }
 
     fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
@@ -74,11 +75,16 @@ where
         Some(internal_edge.e)
     }
 
-    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
-        let edge = self.edges.get_mut(id)?.as_mut()?;
+    fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
+        let edge = self
+            .edges
+            .get_mut(id)
+            .ok_or(GraphError::EdgeNotFound)?
+            .as_mut()
+            .ok_or(GraphError::EdgeNotFound)?;
         mem::swap(&mut edge.u, &mut edge.v);
 
-        Some(())
+        Ok(())
     }
 }
 

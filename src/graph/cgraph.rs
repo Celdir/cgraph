@@ -6,6 +6,7 @@ use crate::graph::containers::node::traits::{
     KeyedNodeContainer, NodeContainer, OrdinalNodeContainer,
 };
 use crate::graph::edge::{Edge, EdgeMut};
+use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
     DirectedGraph, Graph, KeyedGraph, OrdinalGraph, RawGraph, UndirectedGraph, WithCapacity,
@@ -58,20 +59,24 @@ where
         self.adj.degree(u)
     }
 
-    fn remove_node(&mut self, id: Self::NId) -> Option<Self::N> {
-        self.clear_node(id);
+    fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
+        if !self.contains_node(id) {
+            return Err(GraphError::NodeNotFound);
+        }
+
+        self.clear_node(id)?;
         self.adj.unregister_node(id);
-        self.nodes.remove_node(id)
+        Ok(self.nodes.remove_node(id).unwrap())
     }
 
-    fn clear_node(&mut self, u: Self::NId) -> Option<()> {
+    fn clear_node(&mut self, u: Self::NId) -> Result<(), GraphError> {
         let edge_ids: Vec<_> = self.adj.clear_node(u)?;
         for (edge_id, _) in edge_ids {
             self.edges
                 .remove_edge(edge_id)
                 .expect("Edge should be present");
         }
-        Some(())
+        Ok(())
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
@@ -100,21 +105,26 @@ where
         self.edges.edge_mut(edge_id)
     }
 
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Option<Self::EId> {
+    fn insert_edge(
+        &mut self,
+        u: Self::NId,
+        v: Self::NId,
+        edge: Self::E,
+    ) -> Result<Self::EId, GraphError> {
         if !self.contains_node(u) || !self.contains_node(v) {
-            return None;
+            return Err(GraphError::NodeNotFound);
         }
 
-        let edge_id = self.edges.insert_edge(u, v, edge)?;
+        let edge_id = self.edges.insert_edge(u, v, edge);
         self.adj.insert_adj(u, v, edge_id);
-        Some(edge_id)
+        Ok(edge_id)
     }
 
-    fn remove_edge(&mut self, id: Self::EId) -> Option<Self::E> {
-        let edge = self.edges.edge(id)?;
+    fn remove_edge(&mut self, id: Self::EId) -> Result<Self::E, GraphError> {
+        let edge = self.edges.edge(id).ok_or(GraphError::EdgeNotFound)?;
         let (u, v) = (edge.u(), edge.v());
         self.adj.remove_adj(u, v, id);
-        self.edges.remove_edge(id)
+        Ok(self.edges.remove_edge(id).unwrap())
     }
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
@@ -193,13 +203,11 @@ where
         self.adj.in_degree(u)
     }
 
-    fn reverse_edge(&mut self, id: Self::EId) -> Option<()> {
-        let edge = self.edge(id)?;
+    fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
+        let edge = self.edge(id).ok_or(GraphError::EdgeNotFound)?;
         self.adj.reverse_adj(edge.u(), edge.v(), id);
 
-        self.edges.reverse_edge(id).unwrap();
-
-        Some(())
+        self.edges.reverse_edge(id)
     }
 }
 
