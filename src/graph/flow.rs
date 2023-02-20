@@ -115,7 +115,7 @@ impl<V: FlowValue> Flow<V> {
 
     pub fn increase_flow(&mut self, delta: V) -> Result<(), GraphError> {
         if self.flow + delta > self.capacity {
-            return Err(GraphError::FlowError(FlowError::InsufficientCapacity));
+            return Err(FlowError::InsufficientCapacity.into());
         }
         self.flow = self.flow + delta;
         Ok(())
@@ -209,7 +209,7 @@ where
             .ok_or(GraphError::EdgeNotFound)?
             .increase_flow(delta)?;
         self.back_edge_mut(id)
-            .ok_or(GraphError::FlowError(FlowError::BackEdgeNotFound))?
+            .ok_or(FlowError::BackEdgeNotFound)?
             .increase_flow(-delta)?;
 
         Ok(())

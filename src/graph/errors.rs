@@ -9,7 +9,7 @@ pub enum GraphError {
     EdgeNotFound,
 
     #[error("flow error: {0}")]
-    FlowError(FlowError),
+    FlowError(#[from] FlowError),
 
     #[error("unknown graph error")]
     Unknown,
