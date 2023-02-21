@@ -2,7 +2,6 @@
 
 TODO
  - Improve errors by including details (node/edge ids, etc) in error messages
- - Make algos return Result with custom error types
  - Migrate some existing return types from Option<> to Result<>, especially those that are supposed to mutate the graph. Consider where to keep Option<>, like perhaps for `node()` and `edge()`
  - Collapse Edge and EdgeMut into a single struct where the generic type for data is either `&'a E` or `&'a mut E`?
  - Move `_mut()` iteration methods to their own trait, e.g. GraphMut

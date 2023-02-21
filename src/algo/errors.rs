@@ -9,5 +9,8 @@ pub enum AlgoError {
     StartNodeNotFound,
 
     #[error("No path from start node to end node")]
-    NoPathFromStartToEnd
+    NoPathFromStartToEnd,
+
+    #[error("unimplemented")]
+    Unimplemented,
 }
