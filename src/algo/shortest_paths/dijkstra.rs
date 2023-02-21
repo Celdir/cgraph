@@ -1,3 +1,4 @@
+use crate::algo::errors::AlgoError;
 use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
 use crate::graph::traits::Graph;
 use priority_queue::PriorityQueue;
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ops::Add;
 
-pub fn dijkstra<'a, G>(graph: &'a G, start: G::NId) -> ShortestPathTree<'a, G>
+pub fn dijkstra<'a, G>(graph: &'a G, start: G::NId) -> Result<ShortestPathTree<'a, G>, AlgoError>
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
@@ -16,7 +17,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return ShortestPathTree::new(dist, parent);
+        return Err(AlgoError::StartNodeNotFound);
     }
 
     // initialize min heap
@@ -45,11 +46,12 @@ where
         }
     }
 
-    ShortestPathTree::new(dist, parent)
+    Ok(ShortestPathTree::new(dist, parent))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::algo::errors::AlgoError;
     use crate::algo::shortest_paths::dijkstra::dijkstra;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
@@ -66,12 +68,12 @@ mod tests {
         graph.put_node("B", ());
         graph.put_node("C", ());
         graph.put_node("D", ());
-        graph.insert_edge("A", "B", 5);
-        graph.insert_edge("A", "C", 2);
-        graph.insert_edge("C", "D", 1);
-        graph.insert_edge("B", "D", 1);
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
 
-        let tree = dijkstra(&graph, "A");
+        let tree = dijkstra(&graph, "A").unwrap();
         assert_eq!(tree.dist("A"), Some(&0));
         assert_eq!(tree.dist("B"), Some(&4));
         assert_eq!(tree.dist("C"), Some(&2));
@@ -112,16 +114,16 @@ mod tests {
         graph.insert_node(());
         graph.insert_node(());
 
-        graph.insert_edge(0, 1, 5);
-        graph.insert_edge(0, 2, 3);
-        graph.insert_edge(0, 3, 1);
-        graph.insert_edge(2, 1, 4);
-        graph.insert_edge(3, 2, 1);
-        graph.insert_edge(1, 4, 1);
-        graph.insert_edge(3, 4, 7);
-        graph.insert_edge(2, 4, 6);
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(0, 2, 3).expect("nodes should exist");
+        graph.insert_edge(0, 3, 1).expect("nodes should exist");
+        graph.insert_edge(2, 1, 4).expect("nodes should exist");
+        graph.insert_edge(3, 2, 1).expect("nodes should exist");
+        graph.insert_edge(1, 4, 1).expect("nodes should exist");
+        graph.insert_edge(3, 4, 7).expect("nodes should exist");
+        graph.insert_edge(2, 4, 6).expect("nodes should exist");
 
-        let tree = dijkstra(&graph, 0);
+        let tree = dijkstra(&graph, 0).unwrap();
         assert_eq!(tree.dist(0), Some(&0));
         assert_eq!(tree.dist(1), Some(&5));
         assert_eq!(tree.dist(2), Some(&2));
@@ -146,11 +148,33 @@ mod tests {
         let ids: Vec<_> = path_to_e.nodes;
         assert_eq!(ids, vec![0, 1, 4]);
 
-        let empty_tree = dijkstra(&graph, 4);
+        let empty_tree = dijkstra(&graph, 4).unwrap();
         assert_eq!(empty_tree.dist(0), None);
         assert_eq!(empty_tree.dist(1), None);
         assert_eq!(empty_tree.dist(2), None);
         assert_eq!(empty_tree.dist(3), None);
         assert_eq!(empty_tree.dist(4), Some(&0));
+    }
+
+    #[test]
+    fn dijkstra_no_start_node_error() {
+        // A --5-- B
+        // |       |
+        // 2       1
+        // |       |
+        // C --1-- D
+        let mut graph = UnMapGraph::with_capacity(4, 4);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let result = dijkstra(&graph, "E");
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), AlgoError::StartNodeNotFound);
     }
 }

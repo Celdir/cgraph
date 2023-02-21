@@ -1,6 +1,6 @@
 use crate::graph::edge::Edge;
-use crate::graph::traits::Graph;
 use crate::graph::node::Node;
+use crate::graph::traits::Graph;
 use std::collections::{HashMap, VecDeque};
 
 pub fn bfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Bfs<'a, G> {
@@ -55,9 +55,9 @@ impl<'a, G: Graph> Bfs<'a, G> {
 
 #[cfg(test)]
 mod tests {
-    use crate::iter::bfs::bfs;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
+    use crate::iter::bfs::bfs;
     use std::collections::HashMap;
 
     #[test]
@@ -70,17 +70,17 @@ mod tests {
         graph.insert_node(());
         graph.insert_node(());
         graph.insert_node(());
-        graph.insert_edge(0, 1, ());
-        graph.insert_edge(0, 2, ());
-        graph.insert_edge(1, 3, ());
-        graph.insert_edge(1, 4, ());
-        graph.insert_edge(2, 5, ());
-        graph.insert_edge(2, 6, ());
-        graph.insert_edge(6, 0, ());
-        graph.insert_edge(5, 2, ());
-        graph.insert_edge(5, 6, ());
-        graph.insert_edge(3, 2, ());
-        graph.insert_edge(5, 1, ());
+        graph.insert_edge(0, 1, ()).expect("nodes should exist");
+        graph.insert_edge(0, 2, ()).expect("nodes should exist");
+        graph.insert_edge(1, 3, ()).expect("nodes should exist");
+        graph.insert_edge(1, 4, ()).expect("nodes should exist");
+        graph.insert_edge(2, 5, ()).expect("nodes should exist");
+        graph.insert_edge(2, 6, ()).expect("nodes should exist");
+        graph.insert_edge(6, 0, ()).expect("nodes should exist");
+        graph.insert_edge(5, 2, ()).expect("nodes should exist");
+        graph.insert_edge(5, 6, ()).expect("nodes should exist");
+        graph.insert_edge(3, 2, ()).expect("nodes should exist");
+        graph.insert_edge(5, 1, ()).expect("nodes should exist");
 
         let expected_parents = HashMap::from([(1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2)]);
         for (parent_edge, node) in bfs(&graph, 0) {
@@ -104,12 +104,12 @@ mod tests {
         graph.put_node("c", ());
         graph.put_node("d", ());
         graph.put_node("e", ());
-        graph.insert_edge("a", "b", ());
-        graph.insert_edge("c", "a", ());
-        graph.insert_edge("b", "d", ());
-        graph.insert_edge("d", "e", ());
-        graph.insert_edge("e", "c", ());
- 
+        graph.insert_edge("a", "b", ()).expect("nodes should exist");
+        graph.insert_edge("c", "a", ()).expect("nodes should exist");
+        graph.insert_edge("b", "d", ()).expect("nodes should exist");
+        graph.insert_edge("d", "e", ()).expect("nodes should exist");
+        graph.insert_edge("e", "c", ()).expect("nodes should exist");
+
         let expected_parents = HashMap::from([("b", "a"), ("c", "a"), ("d", "b"), ("e", "c")]);
         for (parent_edge, node) in bfs(&graph, "a") {
             match parent_edge {

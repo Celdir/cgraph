@@ -1,3 +1,4 @@
+use crate::algo::errors::AlgoError;
 use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
 use crate::graph::edge::Edge;
 use crate::graph::traits::Graph;
@@ -12,7 +13,7 @@ type Cycle<'a, G> = Vec<Edge<'a, <G as Graph>::NId, <G as Graph>::EId, <G as Gra
 pub fn bellman_ford<'a, G>(
     graph: &'a G,
     start: G::NId,
-) -> (ShortestPathTree<'a, G>, Option<Cycle<'a, G>>)
+) -> Result<(ShortestPathTree<'a, G>, Option<Cycle<'a, G>>), AlgoError>
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
@@ -21,7 +22,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return (ShortestPathTree::new(dist, parent), None);
+        return Err(AlgoError::StartNodeNotFound);
     }
 
     dist.insert(start, G::E::default());
@@ -88,11 +89,12 @@ where
         _ => None,
     };
 
-    (ShortestPathTree::new(dist, parent), cycle)
+    Ok((ShortestPathTree::new(dist, parent), cycle))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::algo::errors::AlgoError;
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
@@ -109,12 +111,12 @@ mod tests {
         graph.put_node("B", ());
         graph.put_node("C", ());
         graph.put_node("D", ());
-        graph.insert_edge("A", "B", 5);
-        graph.insert_edge("A", "C", 2);
-        graph.insert_edge("C", "D", 1);
-        graph.insert_edge("B", "D", 1);
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
 
-        let (tree, _) = bellman_ford(&graph, "A");
+        let (tree, _) = bellman_ford(&graph, "A").unwrap();
         assert_eq!(tree.dist("A"), Some(&0));
         assert_eq!(tree.dist("B"), Some(&4));
         assert_eq!(tree.dist("C"), Some(&2));
@@ -155,16 +157,16 @@ mod tests {
         graph.insert_node(());
         graph.insert_node(());
 
-        graph.insert_edge(0, 1, 5);
-        graph.insert_edge(0, 2, 3);
-        graph.insert_edge(0, 3, 1);
-        graph.insert_edge(2, 1, 4);
-        graph.insert_edge(3, 2, 1);
-        graph.insert_edge(1, 4, 1);
-        graph.insert_edge(3, 4, 7);
-        graph.insert_edge(2, 4, 6);
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(0, 2, 3).expect("nodes should exist");
+        graph.insert_edge(0, 3, 1).expect("nodes should exist");
+        graph.insert_edge(2, 1, 4).expect("nodes should exist");
+        graph.insert_edge(3, 2, 1).expect("nodes should exist");
+        graph.insert_edge(1, 4, 1).expect("nodes should exist");
+        graph.insert_edge(3, 4, 7).expect("nodes should exist");
+        graph.insert_edge(2, 4, 6).expect("nodes should exist");
 
-        let (tree, _) = bellman_ford(&graph, 0);
+        let (tree, _) = bellman_ford(&graph, 0).unwrap();
         assert_eq!(tree.dist(0), Some(&0));
         assert_eq!(tree.dist(1), Some(&5));
         assert_eq!(tree.dist(2), Some(&2));
@@ -189,7 +191,7 @@ mod tests {
         let ids: Vec<_> = path_to_e.nodes;
         assert_eq!(ids, vec![0, 1, 4]);
 
-        let (empty_tree, _) = bellman_ford(&graph, 4);
+        let (empty_tree, _) = bellman_ford(&graph, 4).unwrap();
         assert_eq!(empty_tree.dist(0), None);
         assert_eq!(empty_tree.dist(1), None);
         assert_eq!(empty_tree.dist(2), None);
@@ -210,12 +212,12 @@ mod tests {
         graph.insert_node(());
         graph.insert_node(());
 
-        graph.insert_edge(0, 1, 5);
-        graph.insert_edge(1, 3, -6);
-        graph.insert_edge(3, 2, -2);
-        graph.insert_edge(2, 0, 2);
+        graph.insert_edge(0, 1, 5).expect("nodes should exist");
+        graph.insert_edge(1, 3, -6).expect("nodes should exist");
+        graph.insert_edge(3, 2, -2).expect("nodes should exist");
+        graph.insert_edge(2, 0, 2).expect("nodes should exist");
 
-        let (_, cycle) = bellman_ford(&graph, 0);
+        let (_, cycle) = bellman_ford(&graph, 0).unwrap();
         assert!(cycle.is_some());
         assert_eq!(cycle.unwrap().len(), 4);
     }
@@ -232,12 +234,12 @@ mod tests {
         graph.put_node("B", ());
         graph.put_node("C", ());
         graph.put_node("D", ());
-        graph.insert_edge("A", "B", 5);
-        graph.insert_edge("A", "C", 2);
-        graph.insert_edge("C", "D", -2);
-        graph.insert_edge("B", "D", -4);
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", -2).expect("nodes should exist");
+        graph.insert_edge("B", "D", -4).expect("nodes should exist");
 
-        let (_, cycle) = bellman_ford(&graph, "A");
+        let (_, cycle) = bellman_ford(&graph, "A").unwrap();
         assert!(cycle.is_some());
         assert_eq!(cycle.unwrap().len(), 2);
     }
@@ -254,16 +256,38 @@ mod tests {
         graph.insert_node(());
         graph.insert_node(());
         graph.insert_node(());
-        graph.insert_edge(0, 1, -5);
-        graph.insert_edge(0, 2, -2);
-        graph.insert_edge(2, 3, -2);
-        graph.insert_edge(1, 3, -6);
+        graph.insert_edge(0, 1, -5).expect("nodes should exist");
+        graph.insert_edge(0, 2, -2).expect("nodes should exist");
+        graph.insert_edge(2, 3, -2).expect("nodes should exist");
+        graph.insert_edge(1, 3, -6).expect("nodes should exist");
 
-        let (tree, cycle) = bellman_ford(&graph, 0);
+        let (tree, cycle) = bellman_ford(&graph, 0).unwrap();
         assert!(cycle.is_none());
         assert_eq!(tree.dist(0), Some(&0));
         assert_eq!(tree.dist(1), Some(&-5));
         assert_eq!(tree.dist(2), Some(&-2));
         assert_eq!(tree.dist(3), Some(&-11));
+    }
+
+    #[test]
+    fn bellman_ford_no_start_node_error() {
+        // A --5-- B
+        // |       |
+        // 2       1
+        // |       |
+        // C --1-- D
+        let mut graph = UnMapGraph::with_capacity(4, 4);
+        graph.put_node("A", ());
+        graph.put_node("B", ());
+        graph.put_node("C", ());
+        graph.put_node("D", ());
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+
+        let result = bellman_ford(&graph, "E");
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), AlgoError::StartNodeNotFound);
     }
 }

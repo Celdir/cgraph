@@ -1,6 +1,7 @@
-use crate::algo::shortest_paths::shortest_path_tree::{ShortestPathTree, ShortestPath};
-use crate::graph::traits::Graph;
+use crate::algo::errors::AlgoError;
+use crate::algo::shortest_paths::shortest_path_tree::{ShortestPath, ShortestPathTree};
 use crate::graph::node::Node;
+use crate::graph::traits::Graph;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -13,7 +14,7 @@ pub fn astar<'a, G>(
     start: G::NId,
     end: G::NId,
     heuristic: impl Fn(Node<'a, G::NId, G::N>) -> G::E,
-) -> Option<ShortestPath<'a, G>>
+) -> Result<ShortestPath<'a, G>, AlgoError>
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
@@ -22,7 +23,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return None;
+        return Err(AlgoError::StartNodeNotFound);
     }
 
     // initialize min heap
@@ -49,7 +50,9 @@ where
         }
     }
 
-    ShortestPathTree::new(dist, parent).path(end)
+    Ok(ShortestPathTree::new(dist, parent)
+        .path(end)
+        .ok_or(AlgoError::NoPathFromStartToEnd)?)
 }
 
 #[cfg(test)]
@@ -76,7 +79,9 @@ mod tests {
                     let nx = x + d.0;
                     let ny = y + d.1;
                     if nx < 101 && ny < 101 {
-                        graph.insert_edge((x, y), (nx, ny), 1);
+                        graph
+                            .insert_edge((x, y), (nx, ny), 1)
+                            .expect("nodes should exist");
                     }
                 }
             }
@@ -84,8 +89,11 @@ mod tests {
 
         let path = astar(&graph, (0, 0), (100, 100), |node| {
             let (x, y) = node.id();
-            (((100 - x).pow(2) + (100 - y).pow(2)) as f64).sqrt().floor() as i64
-        }).expect("path should exist");
+            (((100 - x).pow(2) + (100 - y).pow(2)) as f64)
+                .sqrt()
+                .floor() as i64
+        })
+        .expect("path should exist");
 
         assert_eq!(path.dist, 200);
     }

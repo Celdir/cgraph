@@ -107,8 +107,8 @@ mod tests {
             graph.insert_node(());
         }
         for i in 0..5 {
-            for j in (i+1)..5 {
-                graph.insert_edge(i, j, ());
+            for j in (i + 1)..5 {
+                graph.insert_edge(i, j, ()).expect("nodes should exist");
             }
         }
 

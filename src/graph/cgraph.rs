@@ -470,7 +470,7 @@ mod tests {
 
         // single deleted edge should be gone
         let edge_id = graph.between("D", "C").unwrap().id();
-        graph.remove_edge(edge_id);
+        graph.remove_edge(edge_id).expect("edge should exist");
 
         assert_eq!(graph.degree("C"), 0);
         assert_eq!(graph.degree("D"), 1);
@@ -595,7 +595,7 @@ mod tests {
 
         // single deleted edge should be gone
         let edge_id = graph.between(3, 2).unwrap().id();
-        graph.remove_edge(edge_id);
+        graph.remove_edge(edge_id).expect("edge should be present");
 
         assert_eq!(graph.degree(2), 0);
         assert_eq!(graph.degree(3), 1);
@@ -809,7 +809,7 @@ mod tests {
 
         // single deleted edge should be gone
         let edge_id = graph.between(3, 2).unwrap().id();
-        graph.remove_edge(edge_id);
+        graph.remove_edge(edge_id).expect("edge should be present");
 
         assert_eq!(graph.degree(2), 0);
         assert_eq!(graph.degree(3), 1);

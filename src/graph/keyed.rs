@@ -584,7 +584,7 @@ mod tests {
 
         // single deleted edge should be gone
         let edge_id = graph.between("D", "C").unwrap().id();
-        graph.remove_edge(edge_id);
+        graph.remove_edge(edge_id).unwrap();
 
         assert_eq!(graph.degree("C"), 0);
         assert_eq!(graph.degree("D"), 1);

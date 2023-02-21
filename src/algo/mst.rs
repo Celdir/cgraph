@@ -120,10 +120,10 @@ mod tests {
         graph.put_node("B", ());
         graph.put_node("C", ());
         graph.put_node("D", ());
-        graph.insert_edge("A", "B", 5);
-        graph.insert_edge("A", "C", 2);
-        graph.insert_edge("C", "D", 1);
-        graph.insert_edge("B", "D", 1);
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
 
         let tree = mst(&graph);
         assert_eq!(tree.weight(), 4);
@@ -145,13 +145,13 @@ mod tests {
         graph.put_node("E", ());
         graph.put_node("F", ());
         graph.put_node("G", ());
-        graph.insert_edge("A", "B", 5);
-        graph.insert_edge("A", "C", 2);
-        graph.insert_edge("C", "D", 1);
-        graph.insert_edge("B", "D", 1);
-        graph.insert_edge("E", "F", 5);
-        graph.insert_edge("E", "G", 2);
-        graph.insert_edge("G", "F", 10);
+        graph.insert_edge("A", "B", 5).expect("nodes should exist");
+        graph.insert_edge("A", "C", 2).expect("nodes should exist");
+        graph.insert_edge("C", "D", 1).expect("nodes should exist");
+        graph.insert_edge("B", "D", 1).expect("nodes should exist");
+        graph.insert_edge("E", "F", 5).expect("nodes should exist");
+        graph.insert_edge("E", "G", 2).expect("nodes should exist");
+        graph.insert_edge("G", "F", 10).expect("nodes should exist");
 
         let tree = mst(&graph);
         assert_eq!(tree.weight(), 11);
