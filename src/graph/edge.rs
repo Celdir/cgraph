@@ -7,7 +7,7 @@ pub enum Direction {
     Undirected,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Edge<'a, NodeId, EdgeId, E> {
     id: EdgeId,
     origin: NodeId,

@@ -3,17 +3,40 @@ use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use std::collections::HashMap;
 
-pub fn dfs<'a, G: Graph>(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
-    Dfs::new(graph, start)
+pub fn dfs<'a, G>(
+    graph: &'a G,
+    start: G::NId,
+) -> Dfs<'a, G, impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool>
+where
+    G: Graph,
+{
+    Dfs::new(graph, start, |_, _| true)
 }
 
-pub struct Dfs<'a, G: Graph> {
+pub fn dfs_where<'a, G, F>(graph: &'a G, start: G::NId, condition: F) -> Dfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    Dfs::new(graph, start, condition)
+}
+
+pub struct Dfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
     graph: &'a G,
     stack: Vec<(G::NId, Option<G::EId>)>,
     parent: HashMap<G::NId, Option<G::EId>>,
+    condition: F,
 }
 
-impl<'a, G: Graph> Iterator for Dfs<'a, G> {
+impl<'a, G, F> Iterator for Dfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
     type Item = (
         Option<Edge<'a, G::NId, G::EId, G::E>>,
         Node<'a, G::NId, G::N>,
@@ -27,7 +50,12 @@ impl<'a, G: Graph> Iterator for Dfs<'a, G> {
 
         self.parent.insert(node_id, edge_id_opt);
 
-        let adj: Vec<_> = self.graph.adj(node_id)?.collect();
+        let adj: Vec<_> = self
+            .graph
+            .adj(node_id)?
+            .filter(|(edge, node)| (self.condition)(&edge, &node))
+            .collect();
+
         for (edge, node) in adj.iter().rev() {
             let next_id = node.id();
             if !self.parent.contains_key(&next_id) {
@@ -41,12 +69,17 @@ impl<'a, G: Graph> Iterator for Dfs<'a, G> {
     }
 }
 
-impl<'a, G: Graph> Dfs<'a, G> {
-    fn new(graph: &'a G, start: G::NId) -> Dfs<'a, G> {
+impl<'a, G, F> Dfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    fn new(graph: &'a G, start: G::NId, condition: F) -> Self {
         Dfs {
             graph,
             stack: vec![(start, None)],
             parent: HashMap::new(),
+            condition: condition,
         }
     }
 }
@@ -55,7 +88,7 @@ impl<'a, G: Graph> Dfs<'a, G> {
 mod tests {
     use crate::graph::traits::{Graph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnListGraph};
-    use crate::iter::dfs::dfs;
+    use crate::iter::dfs::{dfs, dfs_where};
     use std::collections::HashMap;
 
     #[test]
@@ -114,6 +147,47 @@ mod tests {
 
         let expected_parents = HashMap::from([(0, 2), (1, 0), (3, 1), (4, 3)]);
         for (parent_edge, node) in dfs(&graph, 2) {
+            match parent_edge {
+                Some(edge) => {
+                    let id = node.id();
+                    let expected_parent_id = *expected_parents
+                        .get(&id)
+                        .expect("expected parents map should contain node id");
+                    assert_eq!(
+                        edge.other(id),
+                        expected_parent_id,
+                        "parent of {} should be {} but is {}",
+                        id,
+                        expected_parent_id,
+                        edge.other(id)
+                    )
+                }
+                _ => assert!(!expected_parents.contains_key(&node.id())),
+            }
+        }
+    }
+
+    #[test]
+    fn dfs_even_edges() {
+        let graph = DiListGraph::from_ordinal(
+            vec![(); 7],
+            vec![
+                (0, 1, 2),
+                (0, 2, 1),
+                (1, 3, 2),
+                (1, 4, 1),
+                (2, 5, 2),
+                (2, 6, 1),
+                (6, 0, 1),
+                (5, 2, 1),
+                (5, 6, 2),
+                (3, 2, 2),
+                (5, 1, 1),
+            ],
+        );
+
+        let expected_parents = HashMap::from([(1, 0), (2, 3), (3, 1), (5, 2), (6, 5)]);
+        for (parent_edge, node) in dfs_where(&graph, 0, |&edge, _| *edge % 2 == 0) {
             match parent_edge {
                 Some(edge) => {
                     let id = node.id();

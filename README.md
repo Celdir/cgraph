@@ -1,6 +1,10 @@
 # CGraph - composable graph
 
 TODO
+ - Add `bfs_where` that bfs's based on conditional function and `bfs_to` that searches for a specific target, and a function that does both (name tbd). Same for dfs.
+ - Add `.path(target)` to bfs and dfs structs that returns path to a specific target, much like ShortestPathTree. Maybe find a way to reuse that code. Do this instead of `dfs_to`
+    - Implement `.path()` function (maybe `into_path()`) on the iterator object that will call `next()` on the iterator until target is found and packages findings in a nice struct.
+    - Maybe put this function in Traversal trait that subtraits Iterator and have Bfs and Dfs implement it
  - Improve errors by including details (node/edge ids, etc) in error messages
  - Migrate some existing return types from Option<> to Result<>, especially those that are supposed to mutate the graph. Consider where to keep Option<>, like perhaps for `node()` and `edge()`
  - Collapse Edge and EdgeMut into a single struct where the generic type for data is either `&'a E` or `&'a mut E`?

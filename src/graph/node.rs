@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+#[derive(Copy, Clone)]
 pub struct Node<'a, NodeId, N> {
     id: NodeId,
     data: &'a N,
