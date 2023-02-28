@@ -1,6 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
+use crate::iter::traits::{Path, Traversal};
 use std::collections::{HashMap, VecDeque};
 
 pub fn bfs<'a, G>(
@@ -65,6 +66,44 @@ where
             .unwrap()
             .map(|edge_id| self.graph.edge(edge_id).unwrap());
         Some((parent_edge_opt, node))
+    }
+}
+
+impl<'a, G, F> Traversal<'a, G> for Bfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    fn is_visited(&self, node_id: G::NId) -> bool {
+        self.parent.contains_key(&node_id)
+    }
+
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
+        let &edge_id = self.parent.get(&id)?.as_ref()?;
+        self.graph.edge(edge_id)
+    }
+
+    fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
+        self.graph.node(*self.queue.front()?)
+    }
+
+    fn path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
+        while !self.parent.contains_key(&target) {
+            self.next()?;
+        }
+
+        let mut path = Vec::new();
+        let mut node_id_opt = Some(target);
+        while node_id_opt.is_some() {
+            let node_id = node_id_opt.unwrap();
+            let node = self.graph.node(node_id).expect("node should exist");
+            let edge = self.parent_edge(node_id);
+            node_id_opt = edge.as_ref().map(|e| e.other(node_id));
+
+            path.push((edge, node));
+        }
+
+        Some(Path::new(path))
     }
 }
 
