@@ -37,6 +37,7 @@ where
     type EdgeMutIterator<'a> = EC::EdgeMutIterator<'a> where Self: 'a;
 
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
+    type AdjIdsIterator<'a> = AC::AdjIterator<'a> where Self: 'a;
     type AdjMutIterator<'a> = GAdjMutIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
@@ -148,6 +149,10 @@ where
             graph: &self,
             inner: self.adj.adj(u)?,
         })
+    }
+
+    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
+        Some(self.adj.adj(u)?)
     }
 
     fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {

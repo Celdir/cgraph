@@ -6,10 +6,10 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::{FlowError, GraphError};
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use std::cmp::PartialOrd;
+use std::cmp::Ord;
 use std::ops::{Add, Neg, Sub};
 
-pub trait FlowGraph: Graph {
+pub trait FlowGraph: Graph<E = Flow<<Self as FlowGraph>::FlowVal>> {
     type BackEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
     where
         Self: 'a;
@@ -65,7 +65,7 @@ pub trait FlowGraph: Graph {
 }
 
 pub trait FlowValue:
-    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + PartialOrd + Copy + Default
+    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + Ord + Copy + Default
 {
 }
 impl FlowValue for i8 {}
@@ -77,6 +77,8 @@ impl FlowValue for isize {}
 //impl FlowValue for f32 {}
 //impl FlowValue for f64 {}
 
+// TODO: make this struct required by FlowGraph trait so it can be used by functions that take a
+// generic FlowGraph param
 pub struct Flow<V: FlowValue> {
     flow: V,
     capacity: V,
@@ -111,6 +113,10 @@ impl<V: FlowValue> Flow<V> {
 
     pub fn residual(&self) -> V {
         self.capacity - self.flow
+    }
+
+    pub fn has_residual(&self) -> bool {
+        self.residual() > V::default()
     }
 
     pub fn increase_flow(&mut self, delta: V) -> Result<(), GraphError> {

@@ -36,6 +36,7 @@ where
     type EdgeMutIterator<'a> = EdgeMutIterator<'a, G, Id> where Self: 'a;
 
     type AdjIterator<'a> = AdjIterator<'a, G, Id> where Self: 'a;
+    type AdjIdsIterator<'a> = AdjIdsIterator<'a, G, Id> where Self: 'a;
     type AdjMutIterator<'a> = AdjMutIterator<'a, G, Id> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
@@ -170,6 +171,14 @@ where
         Some(AdjIterator {
             keys: &self.keys,
             inner: self.graph.adj(key)?,
+        })
+    }
+
+    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjIdsIterator {
+            keys: &self.keys,
+            inner: self.graph.adj_ids(key)?,
         })
     }
 
@@ -421,6 +430,35 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|adj| map_adj(&self.keys, adj))
+    }
+}
+
+pub struct AdjIdsIterator<'a, G, Id>
+where
+    G: 'a + Graph,
+    Id: Eq + Hash + Copy,
+{
+    keys: &'a BiMap<Id, G::NId>,
+    inner: G::AdjIdsIterator<'a>,
+}
+
+impl<'a, G, Id> Iterator for AdjIdsIterator<'a, G, Id>
+where
+    G: OrdinalGraph,
+    Id: Eq + Hash + Copy,
+{
+    type Item = (G::EId, Id);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|adj| {
+            (
+                adj.0,
+                *self
+                    .keys
+                    .get_by_right(&adj.1)
+                    .expect("Inner node id should be mapped to outer node id"),
+            )
+        })
     }
 }
 

@@ -11,6 +11,12 @@ pub enum AlgoError {
     #[error("No path from start node to end node")]
     NoPathFromStartToEnd,
 
+    #[error("Specified source node does not exist in the flow graph")]
+    SourceNotFound,
+
+    #[error("Specified sink node does not exist in the flow graph")]
+    SinkNotFound,
+
     #[error("unimplemented")]
     Unimplemented,
 }

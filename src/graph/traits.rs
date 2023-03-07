@@ -1,6 +1,6 @@
 use crate::graph::edge::{Edge, EdgeMut};
-use crate::graph::node::{Node, NodeMut};
 use crate::graph::errors::GraphError;
+use crate::graph::node::{Node, NodeMut};
 use std::hash::Hash;
 
 pub trait Graph {
@@ -31,6 +31,9 @@ pub trait Graph {
     >
     where
         Self: 'a;
+    type AdjIdsIterator<'a>: Iterator<Item = (Self::EId, Self::NId)>
+    where
+        Self: 'a;
     type AdjMutIterator<'a>: Iterator<
         Item = (
             EdgeMut<'a, Self::NId, Self::EId, Self::E>,
@@ -53,8 +56,17 @@ pub trait Graph {
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
-    fn between_mut(&mut self, u: Self::NId, v: Self::NId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
-    fn insert_edge(&mut self, u: Self::NId, v: Self::NId, edge: Self::E) -> Result<Self::EId, GraphError>;
+    fn between_mut(
+        &mut self,
+        u: Self::NId,
+        v: Self::NId,
+    ) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
+    fn insert_edge(
+        &mut self,
+        u: Self::NId,
+        v: Self::NId,
+        edge: Self::E,
+    ) -> Result<Self::EId, GraphError>;
     fn remove_edge(&mut self, id: Self::EId) -> Result<Self::E, GraphError>;
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
@@ -65,6 +77,7 @@ pub trait Graph {
 
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
+    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>>;
     fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>>;
 }
 
