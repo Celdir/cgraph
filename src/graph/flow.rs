@@ -77,8 +77,7 @@ impl FlowValue for isize {}
 //impl FlowValue for f32 {}
 //impl FlowValue for f64 {}
 
-// TODO: make this struct required by FlowGraph trait so it can be used by functions that take a
-// generic FlowGraph param
+#[derive(Default, Copy, Clone)]
 pub struct Flow<V: FlowValue> {
     flow: V,
     capacity: V,
@@ -195,7 +194,7 @@ where
     ) -> Result<(Self::EId, Self::EId), GraphError> {
         let forward_id = self.insert_edge(u, v, Flow::new_forward(capacity))?;
         let back_id = self
-            .insert_edge(u, v, Flow::new_back())
+            .insert_edge(v, u, Flow::new_back())
             .expect("error inserting back edge in flow graph");
         Ok((forward_id, back_id))
     }

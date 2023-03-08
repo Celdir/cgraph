@@ -1,6 +1,8 @@
 # CGraph - composable graph
 
 TODO
+ - Better error messages: derive Debug for all data and format node ids, etc into errors
+ - Perf tests for dinic and other algos, maybe use competitive programming problem test cases
  - Add `bfs_where` that bfs's based on conditional function and `bfs_to` that searches for a specific target, and a function that does both (name tbd). Same for dfs.
  - Add `.path(target)` to bfs and dfs structs that returns path to a specific target, much like ShortestPathTree. Maybe find a way to reuse that code. Do this instead of `dfs_to`
     - Implement `.path()` function (maybe `into_path()`) on the iterator object that will call `next()` on the iterator until target is found and packages findings in a nice struct.

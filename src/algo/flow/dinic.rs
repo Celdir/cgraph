@@ -130,3 +130,62 @@ where
 
     adj
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::algo::errors::AlgoError;
+    use crate::algo::flow::dinic::dinic;
+    use crate::graph::flow::FlowGraph;
+    use crate::graph::traits::OrdinalGraph;
+    use crate::graph::types::FlatFlowGraph;
+
+    #[test]
+    fn dinic_base_case() {
+        let mut graph = FlatFlowGraph::new();
+        for _ in 0..6 {
+            graph.insert_node(());
+        }
+        graph
+            .insert_flow_edge(0, 1, 10)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(0, 3, 8)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(1, 3, 2)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(1, 2, 5)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(3, 4, 10)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(4, 2, 8)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(2, 5, 7)
+            .expect("node ids should exist");
+        graph
+            .insert_flow_edge(4, 5, 10)
+            .expect("node ids should exist");
+
+        let flow = dinic(&mut graph, 0, 5).expect("flow should exist");
+        assert_eq!(flow, 15);
+    }
+
+    #[test]
+    fn dinic_source_not_found() {
+        let mut graph = FlatFlowGraph::<(), i32>::new();
+        let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
+        assert_eq!(flow_err, AlgoError::SourceNotFound);
+    }
+
+    #[test]
+    fn dinic_sink_not_found() {
+        let mut graph = FlatFlowGraph::<(), i32>::new();
+        graph.insert_node(());
+        let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
+        assert_eq!(flow_err, AlgoError::SinkNotFound);
+    }
+}
