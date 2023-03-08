@@ -103,6 +103,7 @@ where
 
             path.push((edge, node));
         }
+        path.reverse();
 
         Some(Path::new(path))
     }
