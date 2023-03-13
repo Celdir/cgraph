@@ -52,7 +52,10 @@ where
 
     Ok(ShortestPathTree::new(dist, parent)
         .path(end)
-        .ok_or(AlgoError::NoPathFromStartToEnd(format!("{:?}", start), format!("{:?}", end)))?)
+        .ok_or(AlgoError::NoPathFromStartToEnd(
+            format!("{:?}", start),
+            format!("{:?}", end),
+        ))?)
 }
 
 #[cfg(test)]

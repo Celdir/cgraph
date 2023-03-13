@@ -1,5 +1,6 @@
-pub mod topological_sort;
-pub mod shortest_paths;
-pub mod flow;
+pub mod components;
 pub mod errors;
+pub mod flow;
 pub mod mst;
+pub mod shortest_paths;
+pub mod topological_sort;
