@@ -1,12 +1,13 @@
 use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 
 pub trait EdgeContainer {
-    type NId: Eq + Hash + Copy;
+    type NId: Eq + Hash + Copy + Debug;
     type E;
-    type EId: Eq + Hash + Copy;
+    type EId: Eq + Hash + Copy + Debug;
 
     type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
     where

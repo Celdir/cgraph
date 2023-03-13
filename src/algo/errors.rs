@@ -5,17 +5,17 @@ pub enum AlgoError {
     #[error("Graph contains cycles and thus has no topological ordering")]
     NoTopologicalOrdering,
 
-    #[error("Specified start node does not exist in the graph")]
-    StartNodeNotFound,
+    #[error("Start node {0:?} does not exist in the graph")]
+    StartNodeNotFound(String),
 
-    #[error("No path from start node to end node")]
-    NoPathFromStartToEnd,
+    #[error("No path from start node {0:?} to end node {1:?}")]
+    NoPathFromStartToEnd(String, String),
 
-    #[error("Specified source node does not exist in the flow graph")]
-    SourceNotFound,
+    #[error("Source node {0:?} does not exist in the flow graph")]
+    SourceNotFound(String),
 
-    #[error("Specified sink node does not exist in the flow graph")]
-    SinkNotFound,
+    #[error("Sink node {0:?} does not exist in the flow graph")]
+    SinkNotFound(String),
 
     #[error("unimplemented")]
     Unimplemented,

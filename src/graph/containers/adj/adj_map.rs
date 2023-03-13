@@ -4,6 +4,7 @@ use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -14,8 +15,8 @@ pub struct AdjMap<NId, EId> {
 
 impl<NId, EId> AdjContainer for AdjMap<NId, EId>
 where
-    NId: Eq + Hash + Copy,
-    EId: Eq + Hash + Copy,
+    NId: Eq + Hash + Copy + Debug,
+    EId: Eq + Hash + Copy + Debug,
 {
     type NId = NId;
     type EId = EId;
@@ -45,7 +46,10 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
-        let u_adj = self.adj.get_mut(&u).ok_or(GraphError::NodeNotFound)?;
+        let u_adj = self
+            .adj
+            .get_mut(&u)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
         let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (edge_id, v)).collect();
         u_adj.clear();
 
@@ -67,15 +71,15 @@ where
 
 impl<NId, EId> KeyedAdjContainer for AdjMap<NId, EId>
 where
-    NId: Eq + Hash + Copy,
-    EId: Eq + Hash + Copy,
+    NId: Eq + Hash + Copy + Debug,
+    EId: Eq + Hash + Copy + Debug,
 {
 }
 
 impl<NId, EId> RawAdjContainer for AdjMap<NId, EId>
 where
-    NId: Eq + Hash + Copy,
-    EId: Eq + Hash + Copy,
+    NId: Eq + Hash + Copy + Debug,
+    EId: Eq + Hash + Copy + Debug,
 {
 }
 
@@ -93,8 +97,8 @@ pub struct AdjIterator<'a, NId, EId> {
 
 impl<'a, NId, EId> Iterator for AdjIterator<'a, NId, EId>
 where
-    NId: 'a + Eq + Hash + Copy,
-    EId: 'a + Eq + Hash + Copy,
+    NId: 'a + Eq + Hash + Copy + Debug,
+    EId: 'a + Eq + Hash + Copy + Debug,
 {
     type Item = (EId, NId);
 

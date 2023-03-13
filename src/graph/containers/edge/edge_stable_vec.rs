@@ -3,6 +3,7 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter;
 use std::iter::Iterator;
@@ -23,7 +24,7 @@ struct InternalEdge<Id, E> {
 
 impl<NId, E> EdgeContainer for EdgeStableVec<NId, E>
 where
-    NId: Eq + Hash + Copy,
+    NId: Eq + Hash + Copy + Debug,
 {
     type NId = NId;
     type E = E;
@@ -79,9 +80,9 @@ where
         let edge = self
             .edges
             .get_mut(id)
-            .ok_or(GraphError::EdgeNotFound)?
+            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?
             .as_mut()
-            .ok_or(GraphError::EdgeNotFound)?;
+            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?;
         mem::swap(&mut edge.u, &mut edge.v);
 
         Ok(())
@@ -103,7 +104,7 @@ pub struct EdgeIterator<'a, NId, E> {
 
 impl<'a, NId, E> Iterator for EdgeIterator<'a, NId, E>
 where
-    NId: 'a + Eq + Hash + Copy,
+    NId: 'a + Eq + Hash + Copy + Debug,
     E: 'a,
 {
     type Item = Edge<'a, NId, usize, E>;
@@ -125,7 +126,7 @@ pub struct EdgeMutIterator<'a, NId, E> {
 
 impl<'a, NId, E> Iterator for EdgeMutIterator<'a, NId, E>
 where
-    NId: 'a + Eq + Hash + Copy,
+    NId: 'a + Eq + Hash + Copy + Debug,
     E: 'a,
 {
     type Item = EdgeMut<'a, NId, usize, E>;

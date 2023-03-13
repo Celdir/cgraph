@@ -23,7 +23,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return Err(AlgoError::StartNodeNotFound);
+        return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
     }
 
     // initialize min heap
@@ -52,7 +52,7 @@ where
 
     Ok(ShortestPathTree::new(dist, parent)
         .path(end)
-        .ok_or(AlgoError::NoPathFromStartToEnd)?)
+        .ok_or(AlgoError::NoPathFromStartToEnd(format!("{:?}", start), format!("{:?}", end)))?)
 }
 
 #[cfg(test)]

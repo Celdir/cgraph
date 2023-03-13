@@ -12,10 +12,10 @@ where
 {
     // TODO: maybe just change this to "node not found" error with custom error message
     if !graph.contains_node(source) {
-        return Err(AlgoError::SourceNotFound);
+        return Err(AlgoError::SourceNotFound(format!("{:?}", source)));
     }
     if !graph.contains_node(sink) {
-        return Err(AlgoError::SinkNotFound);
+        return Err(AlgoError::SinkNotFound(format!("{:?}", sink)));
     }
 
     let mut flow = G::FlowVal::default();
@@ -138,6 +138,7 @@ mod tests {
     use crate::graph::flow::FlowGraph;
     use crate::graph::traits::OrdinalGraph;
     use crate::graph::types::FlatFlowGraph;
+    use std::matches;
 
     #[test]
     fn dinic_base_case() {
@@ -178,7 +179,7 @@ mod tests {
     fn dinic_source_not_found() {
         let mut graph = FlatFlowGraph::<(), i32>::new();
         let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
-        assert_eq!(flow_err, AlgoError::SourceNotFound);
+        assert!(matches!(flow_err, AlgoError::SourceNotFound(..)));
     }
 
     #[test]
@@ -186,6 +187,6 @@ mod tests {
         let mut graph = FlatFlowGraph::<(), i32>::new();
         graph.insert_node(());
         let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
-        assert_eq!(flow_err, AlgoError::SinkNotFound);
+        assert!(matches!(flow_err, AlgoError::SinkNotFound(..)));
     }
 }

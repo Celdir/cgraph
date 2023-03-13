@@ -1,10 +1,11 @@
 use crate::graph::errors::GraphError;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 
 pub trait AdjContainer {
-    type NId: Eq + Hash + Copy;
-    type EId: Eq + Hash + Copy;
+    type NId: Eq + Hash + Copy + Debug;
+    type EId: Eq + Hash + Copy + Debug;
 
     type AdjIterator<'a>: Iterator<Item = (Self::EId, Self::NId)>
     where

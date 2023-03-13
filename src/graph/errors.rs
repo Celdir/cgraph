@@ -2,11 +2,11 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GraphError {
-    #[error("node not found in graph")]
-    NodeNotFound,
+    #[error("node {0:?} not found in graph")]
+    NodeNotFound(String),
 
-    #[error("edge not found in graph")]
-    EdgeNotFound,
+    #[error("edge {0:?} not found in graph")]
+    EdgeNotFound(String),
 
     #[error("flow error: {0}")]
     FlowError(#[from] FlowError),
@@ -17,9 +17,9 @@ pub enum GraphError {
 
 #[derive(Error, Debug)]
 pub enum FlowError {
-    #[error("back edge not found in flow graph")]
-    BackEdgeNotFound,
+    #[error("back edge not found for edge {0:?} in flow graph")]
+    BackEdgeNotFound(String),
 
-    #[error("insufficient remaining capacity to increase flow")]
-    InsufficientCapacity,
+    #[error("insufficient remaining capacity in edge {0:?} to increase flow: {1:?}")]
+    InsufficientCapacity(String, String),
 }

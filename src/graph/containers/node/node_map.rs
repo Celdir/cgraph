@@ -4,6 +4,7 @@ use crate::graph::traits::WithCapacity;
 use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 
@@ -14,7 +15,7 @@ pub struct NodeMap<Id, N> {
 
 impl<Id, N> NodeContainer for NodeMap<Id, N>
 where
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type NId = Id;
     type N = N;
@@ -57,7 +58,7 @@ where
 
 impl<Id, N> KeyedNodeContainer for NodeMap<Id, N>
 where
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     fn put_node(&mut self, id: Id, node: N) -> Option<N> {
         let previous = self.remove_node(id);
@@ -79,7 +80,7 @@ pub struct NodeIterator<'a, Id, N> {
     inner: Iter<'a, Id, N>,
 }
 
-impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeIterator<'a, Id, N> {
+impl<'a, Id: Copy + Eq + Hash + Debug, N: 'a> Iterator for NodeIterator<'a, Id, N> {
     type Item = Node<'a, Id, N>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -91,7 +92,7 @@ pub struct NodeMutIterator<'a, Id, N> {
     inner: IterMut<'a, Id, N>,
 }
 
-impl<'a, Id: Copy + Eq + Hash, N: 'a> Iterator for NodeMutIterator<'a, Id, N> {
+impl<'a, Id: Copy + Eq + Hash + Debug, N: 'a> Iterator for NodeMutIterator<'a, Id, N> {
     type Item = NodeMut<'a, Id, N>;
 
     fn next(&mut self) -> Option<Self::Item> {

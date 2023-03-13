@@ -3,6 +3,7 @@ use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::cmp::Ord;
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 use std::slice::Iter;
@@ -16,7 +17,7 @@ pub struct FlatAdjList<EId> {
 
 impl<EId> FlatAdjList<EId>
 where
-    EId: Eq + Hash + Copy + Ord,
+    EId: Eq + Hash + Copy + Debug + Ord,
 {
     fn edge_range(&self, u: usize) -> Option<(usize, usize)> {
         if u >= self.start.len() {
@@ -49,7 +50,7 @@ where
 
 impl<EId> AdjContainer for FlatAdjList<EId>
 where
-    EId: Eq + Hash + Copy + Ord,
+    EId: Eq + Hash + Copy + Debug + Ord,
 {
     type NId = usize;
     type EId = EId;
@@ -94,8 +95,13 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
-        let ids: Vec<_> = self.adj(u).ok_or(GraphError::NodeNotFound)?.collect();
-        let (s, e) = self.edge_range(u).ok_or(GraphError::NodeNotFound)?;
+        let ids: Vec<_> = self
+            .adj(u)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?
+            .collect();
+        let (s, e) = self
+            .edge_range(u)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
 
         self.adj.drain(s..e);
 
@@ -141,8 +147,8 @@ where
     }
 }
 
-impl<EId> OrdinalAdjContainer for FlatAdjList<EId> where EId: Eq + Hash + Copy + Ord {}
-impl<EId> RawAdjContainer for FlatAdjList<EId> where EId: Eq + Hash + Copy + Ord {}
+impl<EId> OrdinalAdjContainer for FlatAdjList<EId> where EId: Eq + Hash + Copy + Debug + Ord {}
+impl<EId> RawAdjContainer for FlatAdjList<EId> where EId: Eq + Hash + Copy + Debug + Ord {}
 
 impl<EId> WithCapacity for FlatAdjList<EId> {
     fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
@@ -159,7 +165,7 @@ pub struct AdjIterator<'a, EId> {
 
 impl<'a, EId> Iterator for AdjIterator<'a, EId>
 where
-    EId: 'a + Eq + Hash + Copy,
+    EId: 'a + Eq + Hash + Copy + Debug,
 {
     type Item = (EId, usize);
 

@@ -2,12 +2,13 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use std::hash::Hash;
+use std::fmt::Debug;
 
 pub trait Graph {
     type N;
-    type NId: Eq + Hash + Copy;
+    type NId: Eq + Hash + Copy + Debug;
     type E;
-    type EId: Eq + Hash + Copy;
+    type EId: Eq + Hash + Copy + Debug;
 
     type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
     where

@@ -2,6 +2,7 @@ use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer, R
 use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
 use std::slice::Iter;
@@ -13,7 +14,7 @@ pub struct AdjList<EId> {
 
 impl<EId> AdjContainer for AdjList<EId>
 where
-    EId: Eq + Hash + Copy,
+    EId: Eq + Hash + Copy + Debug,
 {
     type NId = usize;
     type EId = EId;
@@ -47,7 +48,10 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
-        let u_adj = self.adj.get_mut(u).ok_or(GraphError::NodeNotFound)?;
+        let u_adj = self
+            .adj
+            .get_mut(u)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
         let ids: Vec<_> = u_adj.iter().copied().collect();
         u_adj.clear();
 
@@ -73,8 +77,8 @@ where
     }
 }
 
-impl<EId> OrdinalAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy {}
-impl<EId> RawAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy {}
+impl<EId> OrdinalAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy + Debug {}
+impl<EId> RawAdjContainer for AdjList<EId> where EId: Eq + Hash + Copy + Debug {}
 
 impl<EId> WithCapacity for AdjList<EId> {
     fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
@@ -90,7 +94,7 @@ pub struct AdjIterator<'a, EId> {
 
 impl<'a, EId> Iterator for AdjIterator<'a, EId>
 where
-    EId: 'a + Eq + Hash + Copy,
+    EId: 'a + Eq + Hash + Copy + Debug,
 {
     type Item = (EId, usize);
 

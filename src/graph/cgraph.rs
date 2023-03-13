@@ -62,7 +62,7 @@ where
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
         if !self.contains_node(id) {
-            return Err(GraphError::NodeNotFound);
+            return Err(GraphError::NodeNotFound(format!("{:?}",id)));
         }
 
         self.clear_node(id)?;
@@ -112,8 +112,11 @@ where
         v: Self::NId,
         edge: Self::E,
     ) -> Result<Self::EId, GraphError> {
-        if !self.contains_node(u) || !self.contains_node(v) {
-            return Err(GraphError::NodeNotFound);
+        if !self.contains_node(u) {
+            return Err(GraphError::NodeNotFound(format!("{:?}", u)));
+        }
+        if !self.contains_node(v) {
+            return Err(GraphError::NodeNotFound(format!("{:?}", v)));
         }
 
         let edge_id = self.edges.insert_edge(u, v, edge);
@@ -122,7 +125,10 @@ where
     }
 
     fn remove_edge(&mut self, id: Self::EId) -> Result<Self::E, GraphError> {
-        let edge = self.edges.edge(id).ok_or(GraphError::EdgeNotFound)?;
+        let edge = self
+            .edges
+            .edge(id)
+            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?;
         let (u, v) = (edge.u(), edge.v());
         self.adj.remove_adj(u, v, id);
         Ok(self.edges.remove_edge(id).unwrap())
@@ -209,7 +215,9 @@ where
     }
 
     fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
-        let edge = self.edge(id).ok_or(GraphError::EdgeNotFound)?;
+        let edge = self
+            .edge(id)
+            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?;
         self.adj.reverse_adj(edge.u(), edge.v(), id);
 
         self.edges.reverse_edge(id)

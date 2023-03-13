@@ -7,6 +7,7 @@ use crate::graph::errors::{FlowError, GraphError};
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use std::cmp::Ord;
+use std::fmt::Debug;
 use std::ops::{Add, Neg, Sub};
 
 pub trait FlowGraph: Graph<E = Flow<<Self as FlowGraph>::FlowVal>> {
@@ -65,7 +66,7 @@ pub trait FlowGraph: Graph<E = Flow<<Self as FlowGraph>::FlowVal>> {
 }
 
 pub trait FlowValue:
-    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + Ord + Copy + Default
+    Add<Output = Self> + Sub<Output = Self> + Neg<Output = Self> + Ord + Copy + Default + Debug
 {
 }
 impl FlowValue for i8 {}
@@ -77,7 +78,7 @@ impl FlowValue for isize {}
 //impl FlowValue for f32 {}
 //impl FlowValue for f64 {}
 
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Debug)]
 pub struct Flow<V: FlowValue> {
     flow: V,
     capacity: V,
@@ -118,9 +119,9 @@ impl<V: FlowValue> Flow<V> {
         self.residual() > V::default()
     }
 
-    pub fn increase_flow(&mut self, delta: V) -> Result<(), GraphError> {
+    pub fn increase_flow(&mut self, delta: V) -> Result<(), String> {
         if self.flow + delta > self.capacity {
-            return Err(FlowError::InsufficientCapacity.into());
+            return Err(format!("{:?}", &self));
         }
         self.flow = self.flow + delta;
         Ok(())
@@ -211,11 +212,13 @@ where
 
     fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), GraphError> {
         self.edge_mut(id)
-            .ok_or(GraphError::EdgeNotFound)?
-            .increase_flow(delta)?;
+            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?
+            .increase_flow(delta)
+            .map_err(|flow| FlowError::InsufficientCapacity(format!("{:?}", id), flow))?;
         self.back_edge_mut(id)
-            .ok_or(FlowError::BackEdgeNotFound)?
-            .increase_flow(-delta)?;
+            .ok_or(FlowError::BackEdgeNotFound(format!("{:?}", id)))?
+            .increase_flow(-delta)
+            .expect("back edge must have residual capacity");
 
         Ok(())
     }

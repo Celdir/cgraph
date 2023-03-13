@@ -22,7 +22,7 @@ where
     let mut parent = HashMap::new();
 
     if !graph.contains_node(start) {
-        return Err(AlgoError::StartNodeNotFound);
+        return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
     }
 
     dist.insert(start, G::E::default());
@@ -98,6 +98,7 @@ mod tests {
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
+    use std::matches;
 
     #[test]
     fn bellman_ford_base_case() {
@@ -288,6 +289,9 @@ mod tests {
 
         let result = bellman_ford(&graph, "E");
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), AlgoError::StartNodeNotFound);
+        assert!(matches!(
+            result.err().unwrap(),
+            AlgoError::StartNodeNotFound(..)
+        ));
     }
 }

@@ -6,6 +6,7 @@ use crate::graph::traits::{
 };
 
 use std::default::Default;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 use bimap::BiMap;
@@ -13,7 +14,7 @@ use bimap::BiMap;
 pub struct Keyed<G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     graph: G,
     keys: BiMap<Id, G::NId>,
@@ -22,7 +23,7 @@ where
 impl<G, Id> Graph for Keyed<G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type N = G::N;
     type NId = Id;
@@ -67,13 +68,19 @@ where
     }
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
-        let &key = self.keys.get_by_left(&id).ok_or(GraphError::NodeNotFound)?;
+        let &key = self
+            .keys
+            .get_by_left(&id)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", id)))?;
         self.keys.remove_by_left(&id);
         self.graph.remove_node(key)
     }
 
     fn clear_node(&mut self, id: Self::NId) -> Result<(), GraphError> {
-        let &key = self.keys.get_by_left(&id).ok_or(GraphError::NodeNotFound)?;
+        let &key = self
+            .keys
+            .get_by_left(&id)
+            .ok_or(GraphError::NodeNotFound(format!("{:?}", id)))?;
         self.graph.clear_node(key)
     }
 
@@ -127,8 +134,12 @@ where
         edge: Self::E,
     ) -> Result<Self::EId, GraphError> {
         let (&u_key, &v_key) = (
-            self.keys.get_by_left(&u).ok_or(GraphError::NodeNotFound)?,
-            self.keys.get_by_left(&v).ok_or(GraphError::NodeNotFound)?,
+            self.keys
+                .get_by_left(&u)
+                .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?,
+            self.keys
+                .get_by_left(&v)
+                .ok_or(GraphError::NodeNotFound(format!("{:?}", v)))?,
         );
         self.graph.insert_edge(u_key, v_key, edge)
     }
@@ -194,7 +205,7 @@ where
 impl<G, Id> Default for Keyed<G, Id>
 where
     G: OrdinalGraph + Default,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     fn default() -> Self {
         Self {
@@ -207,7 +218,7 @@ where
 impl<G, Id> WithCapacity for Keyed<G, Id>
 where
     G: OrdinalGraph + WithCapacity,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
@@ -220,7 +231,7 @@ where
 impl<G, Id> KeyedGraph for Keyed<G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     fn put_node(&mut self, id: Self::NId, node: Self::N) -> Option<Self::N> {
         if self.contains_node(id) {
@@ -256,7 +267,7 @@ where
 impl<G, Id> DirectedGraph for Keyed<G, Id>
 where
     G: DirectedGraph + OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         let &key = self.keys.get_by_left(&u)?;
@@ -314,14 +325,14 @@ where
 impl<G, Id> UndirectedGraph for Keyed<G, Id>
 where
     G: UndirectedGraph + OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
 }
 
 impl<G, Id> Keyed<G, Id>
 where
     G: OrdinalGraph + Default,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     pub fn new() -> Self {
         Self::default()
@@ -331,7 +342,7 @@ where
 pub struct NodeIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::NodeIterator<'a>,
@@ -340,7 +351,7 @@ where
 impl<'a, G, Id> Iterator for NodeIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = Node<'a, Id, G::N>;
 
@@ -352,7 +363,7 @@ where
 pub struct NodeMutIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::NodeMutIterator<'a>,
@@ -361,7 +372,7 @@ where
 impl<'a, G, Id> Iterator for NodeMutIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = NodeMut<'a, Id, G::N>;
 
@@ -373,7 +384,7 @@ where
 pub struct EdgeIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::EdgeIterator<'a>,
@@ -382,7 +393,7 @@ where
 impl<'a, G, Id> Iterator for EdgeIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = Edge<'a, Id, G::EId, G::E>;
 
@@ -394,7 +405,7 @@ where
 pub struct EdgeMutIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::EdgeMutIterator<'a>,
@@ -403,7 +414,7 @@ where
 impl<'a, G, Id> Iterator for EdgeMutIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = EdgeMut<'a, Id, G::EId, G::E>;
 
@@ -415,7 +426,7 @@ where
 pub struct AdjIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::AdjIterator<'a>,
@@ -424,7 +435,7 @@ where
 impl<'a, G, Id> Iterator for AdjIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = (Edge<'a, Id, G::EId, G::E>, Node<'a, Id, G::N>);
 
@@ -436,7 +447,7 @@ where
 pub struct AdjIdsIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::AdjIdsIterator<'a>,
@@ -445,7 +456,7 @@ where
 impl<'a, G, Id> Iterator for AdjIdsIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = (G::EId, Id);
 
@@ -465,7 +476,7 @@ where
 pub struct AdjMutIterator<'a, G, Id>
 where
     G: 'a + Graph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
     inner: G::AdjMutIterator<'a>,
@@ -474,7 +485,7 @@ where
 impl<'a, G, Id> Iterator for AdjMutIterator<'a, G, Id>
 where
     G: OrdinalGraph,
-    Id: Eq + Hash + Copy,
+    Id: Eq + Hash + Copy + Debug,
 {
     type Item = (EdgeMut<'a, Id, G::EId, G::E>, NodeMut<'a, Id, G::N>);
 
@@ -485,8 +496,8 @@ where
 
 fn map_node<'a, L, R, N>(keys: &'a BiMap<L, R>, node: Node<'a, R, N>) -> Node<'a, L, N>
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
 {
     let &id = keys
         .get_by_right(&node.id())
@@ -496,8 +507,8 @@ where
 
 fn map_node_mut<'a, L, R, N>(keys: &'a BiMap<L, R>, node: NodeMut<'a, R, N>) -> NodeMut<'a, L, N>
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
 {
     let &id = keys
         .get_by_right(&node.id())
@@ -510,9 +521,9 @@ fn map_edge<'a, L, R, EId, E>(
     edge: Edge<'a, R, EId, E>,
 ) -> Edge<'a, L, EId, E>
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
-    EId: 'a + Eq + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
+    EId: 'a + Eq + Copy + Debug,
 {
     let &u = keys
         .get_by_right(&edge.u())
@@ -528,9 +539,9 @@ fn map_edge_mut<'a, L, R, EId, E>(
     edge: EdgeMut<'a, R, EId, E>,
 ) -> EdgeMut<'a, L, EId, E>
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
-    EId: 'a + Eq + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
+    EId: 'a + Eq + Copy + Debug,
 {
     let &u = keys
         .get_by_right(&edge.u())
@@ -546,9 +557,9 @@ fn map_adj<'a, L, R, N, EId, E>(
     adj: (Edge<'a, R, EId, E>, Node<'a, R, N>),
 ) -> (Edge<'a, L, EId, E>, Node<'a, L, N>)
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
-    EId: 'a + Eq + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
+    EId: 'a + Eq + Copy + Debug,
 {
     (map_edge(keys, adj.0), map_node(keys, adj.1))
 }
@@ -558,9 +569,9 @@ fn map_adj_mut<'a, L, R, N, EId, E>(
     adj: (EdgeMut<'a, R, EId, E>, NodeMut<'a, R, N>),
 ) -> (EdgeMut<'a, L, EId, E>, NodeMut<'a, L, N>)
 where
-    L: Eq + Hash + Copy,
-    R: Eq + Hash + Copy,
-    EId: 'a + Eq + Copy,
+    L: Eq + Hash + Copy + Debug,
+    R: Eq + Hash + Copy + Debug,
+    EId: 'a + Eq + Copy + Debug,
 {
     (map_edge_mut(keys, adj.0), map_node_mut(keys, adj.1))
 }
