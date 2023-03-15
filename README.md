@@ -1,6 +1,7 @@
 # CGraph - composable graph
 
 TODO
+ - Add priority first search traversal that uses priority queue with custom priority. Replace dijkstra's implementation with pfs with min comparator
  - Better error messages: derive Debug for all data and format node ids, etc into errors
  - Maybe change the `insert_` functions that return Result into `try_insert_` and have the normal ones assert ids exist
  - Perf tests for dinic and other algos, maybe use competitive programming problem test cases

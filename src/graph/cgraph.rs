@@ -62,7 +62,7 @@ where
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
         if !self.contains_node(id) {
-            return Err(GraphError::NodeNotFound(format!("{:?}",id)));
+            return Err(GraphError::NodeNotFound(format!("{:?}", id)));
         }
 
         self.clear_node(id)?;
@@ -564,15 +564,13 @@ mod tests {
         // 2         1
         // |         |
         // N2 --1-- N3
-        let mut graph = UnListGraph::new();
-        graph.insert_node(());
-        graph.insert_node(());
-        graph.insert_node(());
-        graph.insert_node(());
-        graph.insert_edge(0, 1, 5).expect("nodes should exist");
-        graph.insert_edge(0, 2, 2).expect("nodes should exist");
-        graph.insert_edge(2, 3, 1).expect("nodes should exist");
-        graph.insert_edge(1, 3, 1).expect("nodes should exist");
+        let mut graph = UnListGraph::builder()
+            .with_size(4)
+            .edge(0, 1, 5)
+            .edge(0, 2, 2)
+            .edge(2, 3, 1)
+            .edge(1, 3, 1)
+            .build();
 
         let (n, e) = graph.len();
         assert_eq!(n, 4);
@@ -689,17 +687,17 @@ mod tests {
         // |   X   |
         // |  / \  |
         // C ----- D
-        let mut graph = UnMapGraph::from_keyed(
-            vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
-            vec![
+        let mut graph = UnMapGraph::builder()
+            .nodes(vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)])
+            .edges(vec![
                 ("A", "B", 2),
                 ("B", "C", 2),
                 ("C", "D", 2),
                 ("A", "D", 2),
                 ("A", "C", 2),
                 ("D", "B", 2),
-            ],
-        );
+            ])
+            .build();
 
         for mut node in graph.nodes_mut() {
             assert_eq!(*node, 0);

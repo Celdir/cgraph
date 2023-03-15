@@ -706,17 +706,17 @@ mod tests {
         // |   X   |
         // |  / \  |
         // C ----- D
-        let mut graph = Keyed::<UnFlatGraph<i32, i32>, &str>::from_keyed(
-            vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)],
-            vec![
+        let mut graph = Keyed::<UnFlatGraph<i32, i32>, &str>::builder()
+            .nodes(vec![("A", 0), ("B", 0), ("C", 0), ("D", 0)])
+            .edges(vec![
                 ("A", "B", 2),
                 ("B", "C", 2),
                 ("C", "D", 2),
                 ("A", "D", 2),
                 ("A", "C", 2),
                 ("D", "B", 2),
-            ],
-        );
+            ])
+            .build();
 
         for mut node in graph.nodes_mut() {
             assert_eq!(*node, 0);

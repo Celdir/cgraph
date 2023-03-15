@@ -1,8 +1,9 @@
+use crate::graph::builder::{KeyedGraphBuilder, OrdinalGraphBuilder};
 use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
-use std::hash::Hash;
 use std::fmt::Debug;
+use std::hash::Hash;
 
 pub trait Graph {
     type N;
@@ -88,6 +89,13 @@ pub trait OrdinalGraph: Graph {
     fn from_ordinal(nodes: Vec<Self::N>, edges: Vec<(Self::NId, Self::NId, Self::E)>) -> Self
     where
         Self: WithCapacity;
+
+    fn builder() -> OrdinalGraphBuilder<Self>
+    where
+        Self: WithCapacity + Sized,
+    {
+        OrdinalGraphBuilder::<Self>::new()
+    }
 }
 
 pub trait KeyedGraph: Graph {
@@ -99,6 +107,13 @@ pub trait KeyedGraph: Graph {
     ) -> Self
     where
         Self: WithCapacity;
+
+    fn builder() -> KeyedGraphBuilder<Self>
+    where
+        Self: WithCapacity + Sized,
+    {
+        KeyedGraphBuilder::<Self>::new()
+    }
 }
 
 pub trait DirectedGraph: Graph {
