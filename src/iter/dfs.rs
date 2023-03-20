@@ -75,6 +75,8 @@ where
     G: Graph,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
+    type StepItem = Self::Item;
+
     fn is_visited(&self, node_id: G::NId) -> bool {
         self.parent.contains_key(&node_id)
     }

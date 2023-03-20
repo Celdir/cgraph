@@ -2,16 +2,12 @@ use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 
-pub trait Traversal<'a, G>:
-    Iterator<
-    Item = (
-        Option<Edge<'a, G::NId, G::EId, G::E>>,
-        Node<'a, G::NId, G::N>,
-    ),
->
+pub trait Traversal<'a, G>: Iterator<Item = Self::StepItem>
 where
     G: 'a + Graph,
 {
+    type StepItem;
+
     fn is_visited(&self, node_id: G::NId) -> bool;
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>>;
 

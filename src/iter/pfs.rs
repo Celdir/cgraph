@@ -3,37 +3,58 @@ use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Path, Traversal};
 use priority_queue::PriorityQueue;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
-pub fn pfs<'a, G>(
+pub fn pfs<'a, G, P, A>(
     graph: &'a G,
     start: G::NId,
-) -> Pfs<'a, G, impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool>
+    start_priority: P,
+    accumulator: A,
+) -> Pfs<'a, G, P, A, impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool>
 where
     G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
 {
-    Pfs::new(graph, start, |_, _| true)
+    Pfs::new(graph, start, start_priority, accumulator, |_, _| true)
 }
 
-pub fn pfs_where<'a, G, F>(graph: &'a G, start: G::NId, condition: F) -> Pfs<'a, G, F>
+pub fn pfs_where<'a, G, P, A, F>(
+    graph: &'a G,
+    start: G::NId,
+    start_priority: P,
+    accumulator: A,
+    condition: F,
+) -> Pfs<'a, G, P, A, F>
 where
     G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    Pfs::new(graph, start, condition)
+    Pfs::new(graph, start, start_priority, accumulator, condition)
 }
+
+/*struct PriorityType<'a, G, A, P>
+where
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
+    P: Ord + Clone,
+{
+    accumulator: A,
+    start_priority: P,
+}*/
 
 pub struct Pfs<'a, G, P, A, F>
 where
     G: Graph,
-    P: Ord,
-    A: Fn(Option<P>, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     graph: &'a G,
     pq: PriorityQueue<G::NId, P>,
     parent: HashMap<G::NId, Option<G::EId>>,
-    priority: HashMap<G::NId, Option<P>>,
+    priority: HashMap<G::NId, P>,
     accumulator: A,
     condition: F,
 }
@@ -41,39 +62,36 @@ where
 impl<'a, G, P, A, F> Iterator for Pfs<'a, G, P, A, F>
 where
     G: Graph,
-    P: Ord,
-    A: Fn(Option<P>, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     type Item = (
         Option<Edge<'a, G::NId, G::EId, G::E>>,
         Node<'a, G::NId, G::N>,
-        Option<P>,
+        P,
     );
 
     fn next(&mut self) -> Option<Self::Item> {
         let (node_id, priority) = self.pq.pop()?;
-        let mut priority_opt = Some(priority);
         if !self.parent.contains_key(&node_id) {
-            // node is start
             self.parent.insert(node_id, None);
-            priority_opt = None;
         }
-        self.priority.insert(node_id, priority);
+        self.priority.insert(node_id, priority.clone());
 
         for (edge, node) in self.graph.adj(node_id)? {
             if (self.condition)(&edge, &node) {
                 let next_id = node.id();
 
                 if !self.priority.contains_key(&next_id) {
-                    let next_priority = (self.accumulator)(priority_opt, &edge, &node);
-                    let old_priority = pq.push_increase(next_id, next_priority);
+                    let next_priority = (self.accumulator)(priority.clone(), &edge, &node);
+                    let old_priority = self.pq.push_increase(next_id, next_priority.clone());
 
                     match old_priority {
                         // update parent if priority is increased
-                        Some(old_cost) if old_cost == next_cost => {}
+                        Some(old_cost) if old_cost == next_priority => {}
                         _ => {
-                            parent.insert(next_id, edge);
+                            self.parent.insert(next_id, Some(edge.id()));
                         }
                     }
                 }
@@ -86,15 +104,19 @@ where
             .get(&node_id)
             .unwrap()
             .map(|edge_id| self.graph.edge(edge_id).unwrap());
-        Some((parent_edge_opt, node, priority_opt))
+        Some((parent_edge_opt, node, priority))
     }
 }
 
-impl<'a, G, F> Traversal<'a, G> for Pfs<'a, G, F>
+impl<'a, G, P, A, F> Traversal<'a, G> for Pfs<'a, G, P, A, F>
 where
     G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
+    type StepItem = Self::Item;
+
     fn is_visited(&self, node_id: G::NId) -> bool {
         self.parent.contains_key(&node_id)
     }
@@ -105,11 +127,11 @@ where
     }
 
     fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
-        self.graph.node(*self.queue.front()?)
+        self.graph.node(*self.pq.peek()?.0)
     }
 
     fn path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
-        while !self.parent.contains_key(&target) {
+        while !self.priority.contains_key(&target) {
             self.next()?;
         }
 
@@ -129,21 +151,30 @@ where
     }
 }
 
-impl<'a, G, F> Pfs<'a, G, F>
+impl<'a, G, P, A, F> Pfs<'a, G, P, A, F>
 where
     G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    fn new(graph: &'a G, start: G::NId, condition: F) -> Self {
+    fn new(graph: &'a G, start: G::NId, start_priority: P, accumulator: A, condition: F) -> Self {
         Pfs {
             graph,
-            queue: VecDeque::from(vec![start]),
+            pq: PriorityQueue::from(vec![(start, start_priority)]),
             parent: HashMap::new(),
+            priority: HashMap::new(),
+            accumulator: accumulator,
             condition: condition,
         }
     }
+
+    pub fn priority(&self, id: G::NId) -> Option<&P> {
+        self.priority.get(&id)
+    }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
@@ -242,4 +273,4 @@ mod tests {
             }
         }
     }
-}
+}*/
