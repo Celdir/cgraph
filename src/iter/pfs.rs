@@ -3,12 +3,14 @@ use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Path, Traversal};
 use priority_queue::PriorityQueue;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
 pub fn pfs<'a, G, P, A>(
     graph: &'a G,
     start: G::NId,
     start_priority: P,
+    priority_type: PriorityType,
     accumulator: A,
 ) -> Pfs<'a, G, P, A, impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool>
 where
@@ -16,13 +18,21 @@ where
     P: Ord + Clone,
     A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
 {
-    Pfs::new(graph, start, start_priority, accumulator, |_, _| true)
+    Pfs::new(
+        graph,
+        start,
+        start_priority,
+        priority_type,
+        accumulator,
+        |_, _| true,
+    )
 }
 
 pub fn pfs_where<'a, G, P, A, F>(
     graph: &'a G,
     start: G::NId,
     start_priority: P,
+    priority_type: PriorityType,
     accumulator: A,
     condition: F,
 ) -> Pfs<'a, G, P, A, F>
@@ -32,17 +42,50 @@ where
     A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    Pfs::new(graph, start, start_priority, accumulator, condition)
+    Pfs::new(
+        graph,
+        start,
+        start_priority,
+        priority_type,
+        accumulator,
+        condition,
+    )
 }
 
-/*struct PriorityType<'a, G, A, P>
-where
-    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
-    P: Ord + Clone,
-{
-    accumulator: A,
-    start_priority: P,
-}*/
+// TODO: make pq hold PriorityType<P> and let user pass in Max or Min for priority ordering
+#[derive(Eq, PartialEq, Clone, Copy)]
+pub enum PriorityType {
+    Max,
+    Min,
+}
+
+#[derive(Eq, PartialEq, Clone)]
+struct Priority<P> {
+    value: P,
+    ptype: PriorityType,
+}
+
+impl<P: Ord> Ord for Priority<P> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let ordering = self.value.cmp(&other.value);
+        match self.ptype {
+            PriorityType::Max => ordering,
+            PriorityType::Min => ordering.reverse(),
+        }
+    }
+}
+
+impl<P: Ord> PartialOrd for Priority<P> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<P> Priority<P> {
+    fn new(value: P, ptype: PriorityType) -> Self {
+        Self { value, ptype }
+    }
+}
 
 pub struct Pfs<'a, G, P, A, F>
 where
@@ -52,11 +95,12 @@ where
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     graph: &'a G,
-    pq: PriorityQueue<G::NId, P>,
+    pq: PriorityQueue<G::NId, Priority<P>>,
     parent: HashMap<G::NId, Option<G::EId>>,
     priority: HashMap<G::NId, P>,
     accumulator: A,
     condition: F,
+    priority_type: PriorityType,
 }
 
 impl<'a, G, P, A, F> Iterator for Pfs<'a, G, P, A, F>
@@ -77,19 +121,22 @@ where
         if !self.parent.contains_key(&node_id) {
             self.parent.insert(node_id, None);
         }
-        self.priority.insert(node_id, priority.clone());
+        self.priority.insert(node_id, priority.value.clone());
 
         for (edge, node) in self.graph.adj(node_id)? {
             if (self.condition)(&edge, &node) {
                 let next_id = node.id();
 
                 if !self.priority.contains_key(&next_id) {
-                    let next_priority = (self.accumulator)(priority.clone(), &edge, &node);
+                    let next_priority = Priority::new(
+                        (self.accumulator)(priority.value.clone(), &edge, &node),
+                        self.priority_type,
+                    );
                     let old_priority = self.pq.push_increase(next_id, next_priority.clone());
 
                     match old_priority {
                         // update parent if priority is increased
-                        Some(old_cost) if old_cost == next_priority => {}
+                        Some(old_cost) if old_cost.value == next_priority.value => {}
                         _ => {
                             self.parent.insert(next_id, Some(edge.id()));
                         }
@@ -104,7 +151,7 @@ where
             .get(&node_id)
             .unwrap()
             .map(|edge_id| self.graph.edge(edge_id).unwrap());
-        Some((parent_edge_opt, node, priority))
+        Some((parent_edge_opt, node, priority.value))
     }
 }
 
@@ -158,14 +205,22 @@ where
     A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    fn new(graph: &'a G, start: G::NId, start_priority: P, accumulator: A, condition: F) -> Self {
+    fn new(
+        graph: &'a G,
+        start: G::NId,
+        start_priority: P,
+        priority_type: PriorityType,
+        accumulator: A,
+        condition: F,
+    ) -> Self {
         Pfs {
             graph,
-            pq: PriorityQueue::from(vec![(start, start_priority)]),
+            pq: PriorityQueue::from(vec![(start, Priority::new(start_priority, priority_type))]),
             parent: HashMap::new(),
             priority: HashMap::new(),
             accumulator: accumulator,
             condition: condition,
+            priority_type: priority_type,
         }
     }
 

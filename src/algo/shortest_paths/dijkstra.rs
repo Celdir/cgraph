@@ -1,6 +1,9 @@
 use crate::algo::errors::AlgoError;
 use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
+use crate::graph::edge::Edge;
+use crate::graph::node::Node;
 use crate::graph::traits::Graph;
+use crate::iter::pfs::{pfs, Pfs, PriorityType};
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -47,6 +50,28 @@ where
     }
 
     Ok(ShortestPathTree::new(dist, parent))
+}
+
+pub fn dijkstra_iter<'a, G>(
+    graph: &'a G,
+    start: G::NId,
+) -> Pfs<
+    G,
+    G::E,
+    impl Fn(G::E, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> G::E,
+    impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+>
+where
+    G: Graph,
+    G::E: Add<Output = G::E> + Ord + Default + Clone,
+{
+    pfs(
+        graph,
+        start,
+        G::E::default(),
+        PriorityType::Min,
+        |dist, edge, _| dist + edge.data().clone(),
+    )
 }
 
 #[cfg(test)]
