@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal};
+use crate::iter::traits::{Path, Traversal, Tree};
 use std::collections::{HashMap, VecDeque};
 
 pub fn bfs<'a, G>(
@@ -69,31 +69,17 @@ where
     }
 }
 
-impl<'a, G, F> Traversal<'a, G> for Bfs<'a, G, F>
+impl<'a, G, F> Tree<'a, G> for Bfs<'a, G, F>
 where
     G: Graph,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    type StepItem = Self::Item;
-
-    fn is_visited(&self, node_id: G::NId) -> bool {
-        self.parent.contains_key(&node_id)
-    }
-
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
         let &edge_id = self.parent.get(&id)?.as_ref()?;
         self.graph.edge(edge_id)
     }
 
-    fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
-        self.graph.node(*self.queue.front()?)
-    }
-
-    fn path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
-        while !self.parent.contains_key(&target) {
-            self.next()?;
-        }
-
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
         let mut path = Vec::new();
         let mut node_id_opt = Some(target);
         while node_id_opt.is_some() {
@@ -107,6 +93,29 @@ where
         path.reverse();
 
         Some(Path::new(path))
+    }
+}
+
+impl<'a, G, F> Traversal<'a, G> for Bfs<'a, G, F>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    type StepItem = Self::Item;
+
+    fn is_visited(&self, node_id: G::NId) -> bool {
+        self.parent.contains_key(&node_id)
+    }
+
+    fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
+        self.graph.node(*self.queue.front()?)
+    }
+
+    fn find_path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
+        while !self.parent.contains_key(&target) {
+            self.next()?;
+        }
+        self.path_to(target)
     }
 }
 

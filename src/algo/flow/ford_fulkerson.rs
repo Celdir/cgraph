@@ -20,7 +20,9 @@ where
     }
 
     let mut flow = G::FlowVal::default();
-    while let Some(path) = dfs_where(graph, source, |edge, _| edge.has_residual()).path_to(sink) {
+    while let Some(path) =
+        dfs_where(graph, source, |edge, _| edge.has_residual()).find_path_to(sink)
+    {
         let path_flow = path.edges().map(|edge| edge.residual()).min().unwrap();
         flow = flow + path_flow;
 

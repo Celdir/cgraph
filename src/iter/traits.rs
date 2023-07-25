@@ -2,18 +2,25 @@ use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 
-pub trait Traversal<'a, G>: Iterator<Item = Self::StepItem>
+pub trait Tree<'a, G>
+where
+    G: 'a + Graph,
+{
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>>;
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>>;
+}
+
+pub trait Traversal<'a, G>: Tree<'a, G> + Iterator<Item = Self::StepItem>
 where
     G: 'a + Graph,
 {
     type StepItem;
 
     fn is_visited(&self, node_id: G::NId) -> bool;
-    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>>;
-
     fn current_node(&self) -> Option<Node<'a, G::NId, G::N>>;
 
-    fn path_to(&mut self, target: G::NId) -> Option<Path<'a, G>>;
+    // iterates until target is found and then returns path
+    fn find_path_to(&mut self, target: G::NId) -> Option<Path<'a, G>>;
 }
 
 pub struct Path<'a, G>

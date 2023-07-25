@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal};
+use crate::iter::traits::{Path, Traversal, Tree};
 use priority_queue::PriorityQueue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -155,33 +155,19 @@ where
     }
 }
 
-impl<'a, G, P, A, F> Traversal<'a, G> for Pfs<'a, G, P, A, F>
+impl<'a, G, P, A, F> Tree<'a, G> for Pfs<'a, G, P, A, F>
 where
     G: Graph,
     P: Ord + Clone,
     A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
-    type StepItem = Self::Item;
-
-    fn is_visited(&self, node_id: G::NId) -> bool {
-        self.parent.contains_key(&node_id)
-    }
-
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
         let &edge_id = self.parent.get(&id)?.as_ref()?;
         self.graph.edge(edge_id)
     }
 
-    fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
-        self.graph.node(*self.pq.peek()?.0)
-    }
-
-    fn path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
-        while !self.priority.contains_key(&target) {
-            self.next()?;
-        }
-
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
         let mut path = Vec::new();
         let mut node_id_opt = Some(target);
         while node_id_opt.is_some() {
@@ -195,6 +181,31 @@ where
         path.reverse();
 
         Some(Path::new(path))
+    }
+}
+
+impl<'a, G, P, A, F> Traversal<'a, G> for Pfs<'a, G, P, A, F>
+where
+    G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    type StepItem = Self::Item;
+
+    fn is_visited(&self, node_id: G::NId) -> bool {
+        self.parent.contains_key(&node_id)
+    }
+
+    fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
+        self.graph.node(*self.pq.peek()?.0)
+    }
+
+    fn find_path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
+        while !self.priority.contains_key(&target) {
+            self.next()?;
+        }
+        self.path_to(target)
     }
 }
 
