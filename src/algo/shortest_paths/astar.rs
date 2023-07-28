@@ -1,6 +1,6 @@
 use crate::algo::errors::AlgoError;
-use crate::graph::node::Node;
 use crate::graph::edge::Edge;
+use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::pfs::{pfs, Pfs, PriorityType};
 use crate::iter::traits::Traversal;
@@ -46,6 +46,7 @@ mod tests {
     use crate::algo::shortest_paths::astar::astar;
     use crate::graph::traits::{Graph, KeyedGraph};
     use crate::graph::types::UnMapGraph;
+    use crate::iter::traits::Traversal;
 
     #[test]
     fn astar_grid() {
@@ -73,15 +74,16 @@ mod tests {
             }
         }
 
-        let path = astar(&graph, (0, 0), |node| {
+        let (_, _, dist) = astar(&graph, (0, 0), |node| {
             let (x, y) = node.id();
             (((100 - x).pow(2) + (100 - y).pow(2)) as f64)
                 .sqrt()
                 .floor() as i64
         })
-        .find_path_to((100, 100))
-        .expect("path should exist");
+        .expect("start node should exist")
+        .find(|(_, node, _)| node.id() == (100, 100))
+        .expect("end ndoe should be found");
 
-        assert_eq!(path.dist, 200);
+        assert_eq!(dist, 200);
     }
 }

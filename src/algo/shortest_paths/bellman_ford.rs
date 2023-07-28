@@ -98,6 +98,7 @@ mod tests {
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
+    use crate::iter::traits::{Tree};
     use std::matches;
 
     #[test]
@@ -134,8 +135,8 @@ mod tests {
         assert_eq!(d_edge.other("D"), "C");
         assert_eq!(d_edge.data(), &1);
 
-        let path_to_b = tree.path("B").unwrap();
-        let ids: Vec<_> = path_to_b.nodes;
+        let path_to_b = tree.path_to("B").unwrap();
+        let ids: Vec<_> = path_to_b.nodes().map(|node| node.id()).collect();
         assert_eq!(ids, vec!["A", "C", "D", "B"]);
     }
 
@@ -188,8 +189,8 @@ mod tests {
         assert_eq!(e_edge.origin(), 1);
         assert_eq!(e_edge.data(), &1);
 
-        let path_to_e = tree.path(4).unwrap();
-        let ids: Vec<_> = path_to_e.nodes;
+        let path_to_e = tree.path_to(4).unwrap();
+        let ids: Vec<_> = path_to_e.nodes().map(|node| node.id()).collect();
         assert_eq!(ids, vec![0, 1, 4]);
 
         let (empty_tree, _) = bellman_ford(&graph, 4).unwrap();
