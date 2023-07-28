@@ -1,7 +1,9 @@
 use crate::algo::errors::AlgoError;
-use crate::algo::shortest_paths::shortest_path_tree::{ShortestPath, ShortestPathTree};
 use crate::graph::node::Node;
+use crate::graph::edge::Edge;
 use crate::graph::traits::Graph;
+use crate::iter::pfs::{pfs, Pfs, PriorityType};
+use crate::iter::traits::Traversal;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -12,50 +14,31 @@ use std::ops::Add;
 pub fn astar<'a, G>(
     graph: &'a G,
     start: G::NId,
-    end: G::NId,
-    heuristic: impl Fn(Node<'a, G::NId, G::N>) -> G::E,
-) -> Result<ShortestPath<'a, G>, AlgoError>
+    heuristic: impl Fn(&Node<'a, G::NId, G::N>) -> G::E,
+) -> Result<
+    Pfs<
+        G,
+        G::E,
+        impl Fn(G::E, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> G::E,
+        impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+    >,
+    AlgoError,
+>
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
-    let mut dist = HashMap::new();
-    let mut parent = HashMap::new();
-
     if !graph.contains_node(start) {
         return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
     }
 
-    // initialize min heap
-    let mut fringe: PriorityQueue<G::NId, Reverse<G::E>> = PriorityQueue::new();
-    fringe.push(
+    Ok(pfs(
+        graph,
         start,
-        Reverse(G::E::default() + heuristic(graph.node(start).unwrap())),
-    );
-    dist.insert(start, G::E::default());
-
-    while let Some((id, _)) = fringe.pop() {
-        for (edge, node) in graph.adj(id).unwrap() {
-            let next_dist = dist[&id].clone() + edge.data().clone();
-            let nid = node.id();
-            if !dist.contains_key(&nid) || next_dist < dist[&nid] {
-                dist.insert(nid, next_dist.clone());
-                parent.insert(nid, edge);
-
-                // "push_increase" actually decreases the cost if possible because Reverse
-                let next_cost = next_dist + heuristic(node);
-                let priority = Reverse(next_cost.clone());
-                fringe.push_increase(nid, priority);
-            }
-        }
-    }
-
-    Ok(ShortestPathTree::new(dist, parent)
-        .path(end)
-        .ok_or(AlgoError::NoPathFromStartToEnd(
-            format!("{:?}", start),
-            format!("{:?}", end),
-        ))?)
+        G::E::default(),
+        PriorityType::Min,
+        move |dist, edge, node| dist + edge.data().clone() + heuristic(node),
+    ))
 }
 
 #[cfg(test)]
@@ -90,12 +73,13 @@ mod tests {
             }
         }
 
-        let path = astar(&graph, (0, 0), (100, 100), |node| {
+        let path = astar(&graph, (0, 0), |node| {
             let (x, y) = node.id();
             (((100 - x).pow(2) + (100 - y).pow(2)) as f64)
                 .sqrt()
                 .floor() as i64
         })
+        .find_path_to((100, 100))
         .expect("path should exist");
 
         assert_eq!(path.dist, 200);

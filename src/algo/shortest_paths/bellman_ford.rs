@@ -89,7 +89,7 @@ where
         _ => None,
     };
 
-    Ok((ShortestPathTree::new(dist, parent), cycle))
+    Ok((ShortestPathTree::new(graph, dist, parent), cycle))
 }
 
 #[cfg(test)]

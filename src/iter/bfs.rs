@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal, Tree};
+use crate::iter::traits::{Path, PathTree, Traversal, Tree};
 use std::collections::{HashMap, VecDeque};
 
 pub fn bfs<'a, G>(
@@ -29,7 +29,7 @@ where
 {
     graph: &'a G,
     queue: VecDeque<G::NId>,
-    parent: HashMap<G::NId, Option<G::EId>>,
+    tree: PathTree<'a, G>,
     condition: F,
 }
 
@@ -45,27 +45,22 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let node_id = self.queue.pop_front()?;
-        if !self.parent.contains_key(&node_id) {
-            self.parent.insert(node_id, None);
+        if !self.tree.contains_node(node_id) {
+            self.tree.insert_parent(node_id, None);
         }
 
         for (edge, node) in self.graph.adj(node_id)? {
             if (self.condition)(&edge, &node) {
                 let next_id = node.id();
-                if !self.parent.contains_key(&next_id) {
-                    self.parent.insert(next_id, Some(edge.id()));
+                if !self.tree.contains_node(next_id) {
+                    self.tree.insert_parent(next_id, Some(edge.id()));
                     self.queue.push_back(next_id);
                 }
             }
         }
 
         let node = self.graph.node(node_id).unwrap();
-        let parent_edge_opt = self
-            .parent
-            .get(&node_id)
-            .unwrap()
-            .map(|edge_id| self.graph.edge(edge_id).unwrap());
-        Some((parent_edge_opt, node))
+        Some((self.tree.parent_edge(node_id), node))
     }
 }
 
@@ -75,24 +70,11 @@ where
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
-        let &edge_id = self.parent.get(&id)?.as_ref()?;
-        self.graph.edge(edge_id)
+        self.tree.parent_edge(id)
     }
 
     fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
-        let mut path = Vec::new();
-        let mut node_id_opt = Some(target);
-        while node_id_opt.is_some() {
-            let node_id = node_id_opt.unwrap();
-            let node = self.graph.node(node_id).expect("node should exist");
-            let edge = self.parent_edge(node_id);
-            node_id_opt = edge.as_ref().map(|e| e.other(node_id));
-
-            path.push((edge, node));
-        }
-        path.reverse();
-
-        Some(Path::new(path))
+        self.tree.path_to(target)
     }
 }
 
@@ -104,7 +86,7 @@ where
     type StepItem = Self::Item;
 
     fn is_visited(&self, node_id: G::NId) -> bool {
-        self.parent.contains_key(&node_id)
+        self.tree.contains_node(node_id)
     }
 
     fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
@@ -112,7 +94,7 @@ where
     }
 
     fn find_path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
-        while !self.parent.contains_key(&target) {
+        while !self.tree.contains_node(target) {
             self.next()?;
         }
         self.path_to(target)
@@ -128,7 +110,7 @@ where
         Bfs {
             graph,
             queue: VecDeque::from(vec![start]),
-            parent: HashMap::new(),
+            tree: PathTree::new(graph),
             condition: condition,
         }
     }

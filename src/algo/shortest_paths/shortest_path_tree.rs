@@ -1,5 +1,6 @@
 use crate::graph::edge::Edge;
 use crate::graph::traits::Graph;
+use crate::iter::traits::{Path, Tree};
 use std::collections::HashMap;
 
 pub struct ShortestPathTree<'a, G>
@@ -7,60 +8,58 @@ where
     G: Graph,
     G::E: Clone,
 {
+    graph: &'a G,
     dist: HashMap<G::NId, G::E>,
     parent: HashMap<G::NId, Edge<'a, G::NId, G::EId, G::E>>,
 }
 
-impl<'a, G> ShortestPathTree<'a, G>
+impl<'a, G> Tree<'a, G> for ShortestPathTree<'a, G>
 where
-    G: Graph,
+    G: 'a + Graph,
     G::E: Clone,
 {
-    pub fn new(
-        dist: HashMap<G::NId, G::E>,
-        parent: HashMap<G::NId, Edge<'a, G::NId, G::EId, G::E>>,
-    ) -> ShortestPathTree<'a, G> {
-        ShortestPathTree { dist, parent }
-    }
-
-    pub fn dist(&self, id: G::NId) -> Option<&G::E> {
-        self.dist.get(&id)
-    }
-
-    pub fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
         match self.parent.get(&id) {
             Some(edge) => Some(edge.clone()),
             _ => None,
         }
     }
 
-    pub fn path(&self, id: G::NId) -> Option<ShortestPath<'a, G>> {
-        let dist = self.dist(id)?.clone();
-
-        let mut edges = Vec::new();
-        let mut nodes = Vec::new();
-        let mut cur = id;
-
-        nodes.push(id);
-
-        while let Some(edge) = self.parent_edge(cur) {
-            cur = edge.other(cur);
-            edges.push(edge);
-            nodes.push(cur);
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
+        if !self.parent.contains_key(&target) {
+            return None;
         }
-        edges.reverse();
-        nodes.reverse();
 
-        Some(ShortestPath { dist, edges, nodes })
+        let mut path = Vec::new();
+        let mut node_id_opt = Some(target);
+        while node_id_opt.is_some() {
+            let node_id = node_id_opt.unwrap();
+            let node = self.graph.node(node_id).expect("node should exist");
+            let edge = self.parent_edge(node_id);
+            node_id_opt = edge.as_ref().map(|e| e.other(node_id));
+
+            path.push((edge, node));
+        }
+        path.reverse();
+
+        Some(Path::new(path))
     }
 }
 
-pub struct ShortestPath<'a, G>
+impl<'a, G> ShortestPathTree<'a, G>
 where
-    G: Graph,
+    G: 'a + Graph,
     G::E: Clone,
 {
-    pub dist: G::E,
-    pub edges: Vec<Edge<'a, G::NId, G::EId, G::E>>,
-    pub nodes: Vec<G::NId>,
+    pub fn new(
+        graph: &'a G,
+        dist: HashMap<G::NId, G::E>,
+        parent: HashMap<G::NId, Edge<'a, G::NId, G::EId, G::E>>,
+    ) -> ShortestPathTree<'a, G> {
+        ShortestPathTree { graph, dist, parent }
+    }
+
+    pub fn dist(&self, id: G::NId) -> Option<&G::E> {
+        self.dist.get(&id)
+    }
 }

@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal, Tree};
+use crate::iter::traits::{Path, Traversal, Tree, PathTree};
 use priority_queue::PriorityQueue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -96,7 +96,7 @@ where
 {
     graph: &'a G,
     pq: PriorityQueue<G::NId, Priority<P>>,
-    parent: HashMap<G::NId, Option<G::EId>>,
+    tree: PathTree<'a, G>,
     priority: HashMap<G::NId, P>,
     accumulator: A,
     condition: F,
@@ -118,8 +118,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let (node_id, priority) = self.pq.pop()?;
-        if !self.parent.contains_key(&node_id) {
-            self.parent.insert(node_id, None);
+        if !self.tree.contains_node(node_id) {
+            self.tree.insert_parent(node_id, None);
         }
         self.priority.insert(node_id, priority.value.clone());
 
@@ -138,7 +138,7 @@ where
                         // update parent if priority is increased
                         Some(old_cost) if old_cost.value == next_priority.value => {}
                         _ => {
-                            self.parent.insert(next_id, Some(edge.id()));
+                            self.tree.insert_parent(next_id, Some(edge.id()));
                         }
                     }
                 }
@@ -146,12 +146,8 @@ where
         }
 
         let node = self.graph.node(node_id).unwrap();
-        let parent_edge_opt = self
-            .parent
-            .get(&node_id)
-            .unwrap()
-            .map(|edge_id| self.graph.edge(edge_id).unwrap());
-        Some((parent_edge_opt, node, priority.value))
+
+        Some((self.parent_edge(node_id), node, priority.value))
     }
 }
 
@@ -163,24 +159,17 @@ where
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
-        let &edge_id = self.parent.get(&id)?.as_ref()?;
-        self.graph.edge(edge_id)
+        if !self.priority.contains_key(&id) {
+            return None;
+        }
+        self.tree.parent_edge(id)
     }
 
     fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
-        let mut path = Vec::new();
-        let mut node_id_opt = Some(target);
-        while node_id_opt.is_some() {
-            let node_id = node_id_opt.unwrap();
-            let node = self.graph.node(node_id).expect("node should exist");
-            let edge = self.parent_edge(node_id);
-            node_id_opt = edge.as_ref().map(|e| e.other(node_id));
-
-            path.push((edge, node));
+        if !self.priority.contains_key(&target) {
+            return None;
         }
-        path.reverse();
-
-        Some(Path::new(path))
+        self.tree.path_to(target)
     }
 }
 
@@ -194,7 +183,7 @@ where
     type StepItem = Self::Item;
 
     fn is_visited(&self, node_id: G::NId) -> bool {
-        self.parent.contains_key(&node_id)
+        self.priority.contains_key(&node_id)
     }
 
     fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
@@ -227,7 +216,7 @@ where
         Pfs {
             graph,
             pq: PriorityQueue::from(vec![(start, Priority::new(start_priority, priority_type))]),
-            parent: HashMap::new(),
+            tree: PathTree::new(graph),
             priority: HashMap::new(),
             accumulator: accumulator,
             condition: condition,

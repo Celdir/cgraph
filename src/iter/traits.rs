@@ -1,6 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
+use std::collections::HashMap;
 
 pub trait Tree<'a, G>
 where
@@ -71,5 +72,112 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.path.into_iter()
+    }
+}
+
+pub struct PathTree<'a, G>
+where
+    G: 'a + Graph,
+{
+    graph: &'a G,
+    parent: HashMap<G::NId, Option<G::EId>>,
+}
+
+impl<'a, G> Tree<'a, G> for PathTree<'a, G>
+where
+    G: 'a + Graph,
+{
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
+        let &edge_id = self.parent.get(&id)?.as_ref()?;
+        self.graph.edge(edge_id)
+    }
+
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
+        if !self.parent.contains_key(&target) {
+            return None;
+        }
+
+        let mut path = Vec::new();
+        let mut node_id_opt = Some(target);
+        while node_id_opt.is_some() {
+            let node_id = node_id_opt.unwrap();
+            let node = self.graph.node(node_id).expect("node should exist");
+            let edge = self.parent_edge(node_id);
+            node_id_opt = edge.as_ref().map(|e| e.other(node_id));
+
+            path.push((edge, node));
+        }
+        path.reverse();
+
+        Some(Path::new(path))
+    }
+}
+
+impl<'a, G> PathTree<'a, G>
+where
+    G: 'a + Graph,
+{
+    pub fn new(graph: &'a G) -> PathTree<'a, G> {
+        PathTree {
+            graph,
+            parent: HashMap::new(),
+        }
+    }
+
+    pub fn contains_node(&self, id: G::NId) -> bool {
+        self.parent.contains_key(&id)
+    }
+
+    pub fn insert_parent(&mut self, id: G::NId, parent: Option<G::EId>) {
+        self.parent.insert(id, parent);
+    }
+}
+
+pub struct WeightedPathTree<'a, G, W>
+where
+    G: 'a + Graph,
+{
+    tree: PathTree<'a, G>,
+    weight: HashMap<G::NId, W>,
+}
+
+impl<'a, G, W> Tree<'a, G> for WeightedPathTree<'a, G, W>
+where
+    G: 'a + Graph,
+{
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
+        self.tree.parent_edge(id)
+    }
+
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
+        self.tree.path_to(target)
+    }
+}
+
+impl<'a, G, W> WeightedPathTree<'a, G, W>
+where
+    G: 'a + Graph,
+{
+    pub fn new(graph: &'a G) -> WeightedPathTree<'a, G, W> {
+        WeightedPathTree {
+            tree: PathTree::new(graph),
+            weight: HashMap::new(),
+        }
+    }
+
+    pub fn weight(&self, id: G::NId) -> Option<&W> {
+        self.weight.get(&id)
+    }
+
+    pub fn contains_node(&self, id: G::NId) -> bool {
+        self.tree.contains_node(id)
+    }
+
+    pub fn insert_parent(&mut self, id: G::NId, parent: Option<G::EId>) {
+        self.tree.insert_parent(id, parent);
+    }
+
+    pub fn insert_weight(&mut self, id: G::NId, weight: W) {
+        self.weight.insert(id, weight);
     }
 }

@@ -49,7 +49,7 @@ where
         }
     }
 
-    Ok(ShortestPathTree::new(dist, parent))
+    Ok(ShortestPathTree::new(graph, dist, parent))
 }
 
 pub fn dijkstra_iter<'a, G>(
