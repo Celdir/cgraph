@@ -1,8 +1,6 @@
 # CGraph - composable graph
 
 TODO
- - Figure out what to do with astar. Can Pfs be used for it or just go back to bespoke priority queue impl?
-    - Use PFS inside astar function but also maintain `dist` hashmap for true distances. Reference dist hashmap in accumulator closure
  - Refactor Traversal into Tree trait and Traversal supertrait, impl Tree for ShortestPathTree, etc.
     - Paths don't need dist in path because user can just call `shortest_path_tree.dist()`. So use existing `Path` struct
     - Maybe add `root()` function to Tree that gives either Node or NId

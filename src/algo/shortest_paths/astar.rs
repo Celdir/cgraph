@@ -6,6 +6,7 @@ use crate::iter::pfs::{pfs, Pfs, PriorityType};
 use crate::iter::traits::Traversal;
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
+use std::cmp::Ordering;
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::default::Default;
@@ -18,8 +19,8 @@ pub fn astar<'a, G>(
 ) -> Result<
     Pfs<
         G,
-        G::E,
-        impl Fn(G::E, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> G::E,
+        Weight<G::E>,
+        impl Fn(Weight<G::E>, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> Weight<G::E>,
         impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
     >,
     AlgoError,
@@ -35,10 +36,44 @@ where
     Ok(pfs(
         graph,
         start,
-        G::E::default(),
+        Weight {
+            distance: G::E::default(),
+            priority: G::E::default(),
+        },
         PriorityType::Min,
-        move |dist, edge, node| dist + edge.data().clone() + heuristic(node),
+        move |acc: Weight<G::E>, edge, node| {
+            let distance = acc.distance + edge.data().clone();
+            let priority = acc.priority + edge.data().clone() + heuristic(node);
+            Weight { distance, priority }
+        },
     ))
+}
+
+#[derive(PartialEq, Eq, Clone)]
+pub struct Weight<T>
+where
+    T: Add<Output = T> + Ord + Default + Clone,
+{
+    pub distance: T,
+    pub priority: T,
+}
+
+impl<T> Ord for Weight<T>
+where
+    T: Add<Output = T> + Ord + Default + Clone,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+
+impl<T> PartialOrd for Weight<T>
+where
+    T: Add<Output = T> + Ord + Default + Clone,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[cfg(test)]
@@ -74,7 +109,7 @@ mod tests {
             }
         }
 
-        let (_, _, dist) = astar(&graph, (0, 0), |node| {
+        let (_, _, weight) = astar(&graph, (0, 0), |node| {
             let (x, y) = node.id();
             (((100 - x).pow(2) + (100 - y).pow(2)) as f64)
                 .sqrt()
@@ -82,8 +117,8 @@ mod tests {
         })
         .expect("start node should exist")
         .find(|(_, node, _)| node.id() == (100, 100))
-        .expect("end ndoe should be found");
+        .expect("end node should be found");
 
-        assert_eq!(dist, 200);
+        assert_eq!(weight.distance, 200);
     }
 }
