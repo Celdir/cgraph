@@ -1,7 +1,7 @@
 use crate::algo::errors::AlgoError;
-use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
 use crate::graph::edge::Edge;
 use crate::graph::traits::Graph;
+use crate::iter::traits::{Tree, WeightedPathTree};
 use std::cmp::Ord;
 use std::collections::HashMap;
 use std::default::Default;
@@ -13,19 +13,19 @@ type Cycle<'a, G> = Vec<Edge<'a, <G as Graph>::NId, <G as Graph>::EId, <G as Gra
 pub fn bellman_ford<'a, G>(
     graph: &'a G,
     start: G::NId,
-) -> Result<(ShortestPathTree<'a, G>, Option<Cycle<'a, G>>), AlgoError>
+) -> Result<(WeightedPathTree<'a, G, G::E>, Option<Cycle<'a, G>>), AlgoError>
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
-    let mut dist = HashMap::new();
-    let mut parent = HashMap::new();
+    let mut tree = WeightedPathTree::new(graph);
 
     if !graph.contains_node(start) {
         return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
     }
 
-    dist.insert(start, G::E::default());
+    tree.insert_weight(start, G::E::default());
+    tree.insert_parent(start, None);
 
     // n-1 iterations to find shortest paths, +1 final iteration to check for negative cycle
     let (iterations, _) = graph.len();
@@ -38,19 +38,19 @@ where
         change = false;
 
         for u in graph.nodes() {
-            if !dist.contains_key(&u.id()) {
+            if !tree.contains_node(u.id()) {
                 continue;
             }
             for (edge, v) in graph.adj(u.id()).unwrap() {
                 let v_id = v.id();
                 let weight = edge.data().clone();
 
-                let u_dist = dist[&u.id()].clone();
+                let u_dist = tree.weight(u.id()).unwrap().clone();
                 let v_dist_new = u_dist + weight;
 
-                if !dist.contains_key(&v_id) || v_dist_new < dist[&v_id] {
-                    dist.insert(v_id, v_dist_new);
-                    parent.insert(v_id, edge);
+                if !tree.contains_node(v_id) || v_dist_new < *tree.weight(v_id).unwrap() {
+                    tree.insert_weight(v_id, v_dist_new);
+                    tree.insert_parent(v_id, Some(edge.id()));
                     change = true;
                     last_changed = Some(v_id);
                 }
@@ -69,12 +69,15 @@ where
             // In the above example, C's distance from A might be updated in the last iteration of
             // bellman ford, but C itself is not part of the negative cycle between A and B.
             for _ in 0..iterations {
-                cycle_root_id = parent[&cycle_root_id].other(cycle_root_id);
+                cycle_root_id = tree
+                    .parent_edge(cycle_root_id)
+                    .unwrap()
+                    .other(cycle_root_id);
             }
 
             let mut node_id = cycle_root_id;
 
-            while let Some(edge) = parent.get(&node_id) {
+            while let Some(edge) = tree.parent_edge(node_id) {
                 node_id = edge.other(node_id);
                 edges.push(edge.clone());
 
@@ -89,7 +92,7 @@ where
         _ => None,
     };
 
-    Ok((ShortestPathTree::new(graph, dist, parent), cycle))
+    Ok((tree, cycle))
 }
 
 #[cfg(test)]
@@ -98,7 +101,7 @@ mod tests {
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
-    use crate::iter::traits::{Tree};
+    use crate::iter::traits::Tree;
     use std::matches;
 
     #[test]
@@ -119,10 +122,10 @@ mod tests {
         graph.insert_edge("B", "D", 1).expect("nodes should exist");
 
         let (tree, _) = bellman_ford(&graph, "A").unwrap();
-        assert_eq!(tree.dist("A"), Some(&0));
-        assert_eq!(tree.dist("B"), Some(&4));
-        assert_eq!(tree.dist("C"), Some(&2));
-        assert_eq!(tree.dist("D"), Some(&3));
+        assert_eq!(tree.weight("A"), Some(&0));
+        assert_eq!(tree.weight("B"), Some(&4));
+        assert_eq!(tree.weight("C"), Some(&2));
+        assert_eq!(tree.weight("D"), Some(&3));
 
         assert!(tree.parent_edge("A").is_none());
         let b_edge = tree.parent_edge("B").unwrap();
@@ -169,11 +172,11 @@ mod tests {
         graph.insert_edge(2, 4, 6).expect("nodes should exist");
 
         let (tree, _) = bellman_ford(&graph, 0).unwrap();
-        assert_eq!(tree.dist(0), Some(&0));
-        assert_eq!(tree.dist(1), Some(&5));
-        assert_eq!(tree.dist(2), Some(&2));
-        assert_eq!(tree.dist(3), Some(&1));
-        assert_eq!(tree.dist(4), Some(&6));
+        assert_eq!(tree.weight(0), Some(&0));
+        assert_eq!(tree.weight(1), Some(&5));
+        assert_eq!(tree.weight(2), Some(&2));
+        assert_eq!(tree.weight(3), Some(&1));
+        assert_eq!(tree.weight(4), Some(&6));
 
         assert!(tree.parent_edge(0).is_none());
         let b_edge = tree.parent_edge(1).unwrap();
@@ -194,11 +197,11 @@ mod tests {
         assert_eq!(ids, vec![0, 1, 4]);
 
         let (empty_tree, _) = bellman_ford(&graph, 4).unwrap();
-        assert_eq!(empty_tree.dist(0), None);
-        assert_eq!(empty_tree.dist(1), None);
-        assert_eq!(empty_tree.dist(2), None);
-        assert_eq!(empty_tree.dist(3), None);
-        assert_eq!(empty_tree.dist(4), Some(&0));
+        assert_eq!(empty_tree.weight(0), None);
+        assert_eq!(empty_tree.weight(1), None);
+        assert_eq!(empty_tree.weight(2), None);
+        assert_eq!(empty_tree.weight(3), None);
+        assert_eq!(empty_tree.weight(4), Some(&0));
     }
 
     #[test]
@@ -265,10 +268,10 @@ mod tests {
 
         let (tree, cycle) = bellman_ford(&graph, 0).unwrap();
         assert!(cycle.is_none());
-        assert_eq!(tree.dist(0), Some(&0));
-        assert_eq!(tree.dist(1), Some(&-5));
-        assert_eq!(tree.dist(2), Some(&-2));
-        assert_eq!(tree.dist(3), Some(&-11));
+        assert_eq!(tree.weight(0), Some(&0));
+        assert_eq!(tree.weight(1), Some(&-5));
+        assert_eq!(tree.weight(2), Some(&-2));
+        assert_eq!(tree.weight(3), Some(&-11));
     }
 
     #[test]

@@ -4,8 +4,6 @@ TODO
  - Refactor Traversal into Tree trait and Traversal supertrait, impl Tree for ShortestPathTree, etc.
     - Paths don't need dist in path because user can just call `shortest_path_tree.dist()`. So use existing `Path` struct
     - Maybe add `root()` function to Tree that gives either Node or NId
-    - Refactor astar to call and return Pfs
-    - Refactor astar to not require ShortestPath
     - Refactor ShortestPathTree to borrow graph like the traversals do
     - Maybe get rid of ShortestPathTree and instead create PriorityTree that gets converted from a Pfs? But how does that work with Bellman Ford?
  - Add priority first search traversal that uses priority queue with custom priority. Replace dijkstra's implementation with pfs with min comparator

@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal, Tree, PathTree};
+use crate::iter::traits::{Path, PathTree, Traversal, Tree};
 use std::collections::HashMap;
 
 pub fn dfs<'a, G>(
