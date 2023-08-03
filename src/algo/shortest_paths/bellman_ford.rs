@@ -24,8 +24,7 @@ where
         return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
     }
 
-    tree.insert_weight(start, G::E::default());
-    tree.insert_parent(start, None);
+    tree.insert_node(start, None, G::E::default());
 
     // n-1 iterations to find shortest paths, +1 final iteration to check for negative cycle
     let (iterations, _) = graph.len();
@@ -49,8 +48,7 @@ where
                 let v_dist_new = u_dist + weight;
 
                 if !tree.contains_node(v_id) || v_dist_new < *tree.weight(v_id).unwrap() {
-                    tree.insert_weight(v_id, v_dist_new);
-                    tree.insert_parent(v_id, Some(edge.id()));
+                    tree.insert_node(v_id, Some(edge.id()), v_dist_new);
                     change = true;
                     last_changed = Some(v_id);
                 }

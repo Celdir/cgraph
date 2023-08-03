@@ -173,6 +173,11 @@ where
         self.tree.contains_node(id)
     }
 
+    pub fn insert_node(&mut self, id: G::NId, parent: Option<G::EId>, weight: W) {
+        self.insert_parent(id, parent);
+        self.insert_weight(id, weight);
+    }
+
     pub fn insert_parent(&mut self, id: G::NId, parent: Option<G::EId>) {
         self.tree.insert_parent(id, parent);
     }
