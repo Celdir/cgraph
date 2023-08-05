@@ -1,5 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::traits::UndirectedGraph;
+use crate::iter::pfs::{pfs, PriorityType};
+use crate::iter::traits::{Path, PathTree, Tree};
 use priority_queue::PriorityQueue;
 use std::cmp::Ord;
 use std::cmp::Reverse;
@@ -14,47 +16,30 @@ where
     G: UndirectedGraph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
-    let mut parent = HashMap::new();
-    let mut visited: HashMap<G::NId, bool> = HashMap::new();
+    let mut tree = PathTree::new(graph);
     let mut weight = G::E::default();
     let mut connected_components = 0;
 
     for root in graph.nodes() {
         let root_id = root.id();
-        if !visited.contains_key(&root_id) {
+        if !tree.contains_node(root_id) {
             connected_components += 1;
 
-            // initialize min heap
-            let mut pq: PriorityQueue<G::NId, Reverse<G::E>> = PriorityQueue::new();
-            pq.push(root_id, Reverse(G::E::default()));
-
-            while let Some((id, Reverse(cost))) = pq.pop() {
-                visited.insert(id, true);
-                weight = weight + cost;
-
-                for (edge, node) in graph.adj(id).unwrap() {
-                    let next_cost = edge.data().clone();
-                    let nid = node.id();
-                    if !visited.contains_key(&nid) {
-                        // "push_increase" actually decreases the cost if possible because Reverse
-                        let priority = Reverse(next_cost.clone());
-                        let old_priority = pq.push_increase(nid, priority);
-
-                        // update parent if next_cost is less than old_cost or old_cost doesn't exist
-                        match old_priority {
-                            Some(Reverse(old_cost)) if old_cost <= next_cost => {}
-                            _ => {
-                                parent.insert(nid, edge);
-                            }
-                        }
-                    }
-                }
+            for (edge, node, edge_weight) in pfs(
+                graph,
+                root_id,
+                G::E::default(),
+                PriorityType::Min,
+                |_, edge, _| edge.data().clone(),
+            ) {
+                weight = weight + edge_weight;
+                tree.insert_parent(node.id(), edge.map(|e| e.id()));
             }
         }
     }
 
     MST {
-        parent,
+        tree,
         weight,
         connected_components,
     }
@@ -65,9 +50,22 @@ where
     G: UndirectedGraph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
-    parent: HashMap<G::NId, Edge<'a, G::NId, G::EId, G::E>>,
+    tree: PathTree<'a, G>,
     weight: G::E,
     connected_components: usize,
+}
+
+impl<'a, G> Tree<'a, G> for MST<'a, G>
+where
+    G: UndirectedGraph,
+    G::E: Add<Output = G::E> + Ord + Default + Clone,
+{
+    fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
+        self.tree.parent_edge(id)
+    }
+    fn path_to(&self, target: G::NId) -> Option<Path<'a, G>> {
+        self.tree.path_to(target)
+    }
 }
 
 impl<'a, G> MST<'a, G>
@@ -82,31 +80,13 @@ where
     pub fn connected_components(&self) -> usize {
         self.connected_components
     }
-
-    pub fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
-        match self.parent.get(&id) {
-            Some(edge) => Some(edge.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn ancestor_path(&self, id: G::NId) -> Vec<Edge<'a, G::NId, G::EId, G::E>> {
-        let mut edges = Vec::new();
-        let mut cur = id;
-        while let Some(edge) = self.parent_edge(cur) {
-            cur = edge.other(cur);
-            edges.push(edge);
-        }
-        edges.reverse();
-        edges
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::algo::mst::mst;
     use crate::graph::traits::{Graph, KeyedGraph, WithCapacity};
-    use crate::graph::types::{UnMapGraph};
+    use crate::graph::types::UnMapGraph;
 
     #[test]
     fn mst_base_case() {
