@@ -1,5 +1,4 @@
 use crate::algo::errors::AlgoError;
-use crate::algo::shortest_paths::shortest_path_tree::ShortestPathTree;
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
@@ -11,67 +10,32 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::ops::Add;
 
-pub fn dijkstra<'a, G>(graph: &'a G, start: G::NId) -> Result<ShortestPathTree<'a, G>, AlgoError>
-where
-    G: Graph,
-    G::E: Add<Output = G::E> + Ord + Default + Clone,
-{
-    let mut dist = HashMap::new();
-    let mut parent = HashMap::new();
-
-    if !graph.contains_node(start) {
-        return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
-    }
-
-    // initialize min heap
-    let mut pq: PriorityQueue<G::NId, Reverse<G::E>> = PriorityQueue::new();
-    pq.push(start, Reverse(G::E::default()));
-
-    while let Some((id, Reverse(cost))) = pq.pop() {
-        dist.insert(id, cost.clone());
-
-        for (edge, node) in graph.adj(id).unwrap() {
-            let next_cost = cost.clone() + edge.data().clone();
-            let nid = node.id();
-            if !dist.contains_key(&nid) {
-                // "push_increase" actually decreases the cost if possible because Reverse
-                let priority = Reverse(next_cost.clone());
-                let old_priority = pq.push_increase(nid, priority);
-
-                // update parent if next_cost is less than old_cost or old_cost doesn't exist
-                match old_priority {
-                    Some(Reverse(old_cost)) if old_cost <= next_cost => {}
-                    _ => {
-                        parent.insert(nid, edge);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(ShortestPathTree::new(graph, dist, parent))
-}
-
-pub fn dijkstra_iter<'a, G>(
+pub fn dijkstra<'a, G>(
     graph: &'a G,
     start: G::NId,
-) -> Pfs<
-    G,
-    G::E,
-    impl Fn(G::E, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> G::E,
-    impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+) -> Result<
+    Pfs<
+        G,
+        G::E,
+        impl Fn(G::E, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> G::E,
+        impl Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+    >,
+    AlgoError,
 >
 where
     G: Graph,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
-    pfs(
+    if !graph.contains_node(start) {
+        return Err(AlgoError::StartNodeNotFound(format!("{:?}", start)));
+    }
+    Ok(pfs(
         graph,
         start,
         G::E::default(),
         PriorityType::Min,
         |dist, edge, _| dist + edge.data().clone(),
-    )
+    ))
 }
 
 #[cfg(test)]
@@ -80,7 +44,7 @@ mod tests {
     use crate::algo::shortest_paths::dijkstra::dijkstra;
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
-    use crate::iter::traits::{Tree};
+    use crate::iter::traits::{Tree, WeightedPathTree};
     use std::matches;
 
     #[test]
@@ -100,11 +64,11 @@ mod tests {
         graph.insert_edge("C", "D", 1).expect("nodes should exist");
         graph.insert_edge("B", "D", 1).expect("nodes should exist");
 
-        let tree = dijkstra(&graph, "A").unwrap();
-        assert_eq!(tree.dist("A"), Some(&0));
-        assert_eq!(tree.dist("B"), Some(&4));
-        assert_eq!(tree.dist("C"), Some(&2));
-        assert_eq!(tree.dist("D"), Some(&3));
+        let tree = WeightedPathTree::from(dijkstra(&graph, "A").unwrap());
+        assert_eq!(tree.weight("A"), Some(&0));
+        assert_eq!(tree.weight("B"), Some(&4));
+        assert_eq!(tree.weight("C"), Some(&2));
+        assert_eq!(tree.weight("D"), Some(&3));
 
         assert!(tree.parent_edge("A").is_none());
         let b_edge = tree.parent_edge("B").unwrap();
@@ -150,12 +114,12 @@ mod tests {
         graph.insert_edge(3, 4, 7).expect("nodes should exist");
         graph.insert_edge(2, 4, 6).expect("nodes should exist");
 
-        let tree = dijkstra(&graph, 0).unwrap();
-        assert_eq!(tree.dist(0), Some(&0));
-        assert_eq!(tree.dist(1), Some(&5));
-        assert_eq!(tree.dist(2), Some(&2));
-        assert_eq!(tree.dist(3), Some(&1));
-        assert_eq!(tree.dist(4), Some(&6));
+        let tree = WeightedPathTree::from(dijkstra(&graph, 0).unwrap());
+        assert_eq!(tree.weight(0), Some(&0));
+        assert_eq!(tree.weight(1), Some(&5));
+        assert_eq!(tree.weight(2), Some(&2));
+        assert_eq!(tree.weight(3), Some(&1));
+        assert_eq!(tree.weight(4), Some(&6));
 
         assert!(tree.parent_edge(0).is_none());
         let b_edge = tree.parent_edge(1).unwrap();
@@ -175,16 +139,16 @@ mod tests {
         let ids: Vec<_> = path_to_e.nodes().map(|node| node.id()).collect();
         assert_eq!(ids, vec![0, 1, 4]);
 
-        let empty_tree = dijkstra(&graph, 4).unwrap();
-        assert_eq!(empty_tree.dist(0), None);
-        assert_eq!(empty_tree.dist(1), None);
-        assert_eq!(empty_tree.dist(2), None);
-        assert_eq!(empty_tree.dist(3), None);
-        assert_eq!(empty_tree.dist(4), Some(&0));
+        let empty_tree = WeightedPathTree::from(dijkstra(&graph, 4).unwrap());
+        assert_eq!(empty_tree.weight(0), None);
+        assert_eq!(empty_tree.weight(1), None);
+        assert_eq!(empty_tree.weight(2), None);
+        assert_eq!(empty_tree.weight(3), None);
+        assert_eq!(empty_tree.weight(4), Some(&0));
     }
 
     #[test]
-    fn dijkstra_no_start_node_error() {
+    fn dijkstra_no_start_node_empty() {
         // A --5-- B
         // |       |
         // 2       1

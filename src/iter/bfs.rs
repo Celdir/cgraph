@@ -116,6 +116,20 @@ where
     }
 }
 
+impl<'a, G, F> From<Bfs<'a, G, F>> for PathTree<'a, G>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    fn from(bfs: Bfs<'a, G, F>) -> Self {
+        let mut tree = PathTree::new(bfs.graph);
+        for (edge, node) in bfs {
+            tree.insert_parent(node.id(), edge.map(|e| e.id()));
+        }
+        tree
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};

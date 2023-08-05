@@ -1,7 +1,7 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use crate::iter::traits::{Path, Traversal, Tree, PathTree};
+use crate::iter::traits::{Path, PathTree, Traversal, Tree, WeightedPathTree};
 use priority_queue::PriorityQueue;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -226,6 +226,22 @@ where
 
     pub fn priority(&self, id: G::NId) -> Option<&P> {
         self.priority.get(&id)
+    }
+}
+
+impl<'a, G, P, A, F> From<Pfs<'a, G, P, A, F>> for WeightedPathTree<'a, G, P>
+where
+    G: Graph,
+    P: Ord + Clone,
+    A: Fn(P, &Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> P,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    fn from(pfs: Pfs<'a, G, P, A, F>) -> Self {
+        let mut tree = WeightedPathTree::new(pfs.graph);
+        for (edge, node, priority) in pfs {
+            tree.insert_node(node.id(), edge.map(|e| e.id()), priority);
+        }
+        tree
     }
 }
 

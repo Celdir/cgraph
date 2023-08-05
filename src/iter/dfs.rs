@@ -122,6 +122,20 @@ where
     }
 }
 
+impl<'a, G, F> From<Dfs<'a, G, F>> for PathTree<'a, G>
+where
+    G: Graph,
+    F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
+{
+    fn from(dfs: Dfs<'a, G, F>) -> Self {
+        let mut tree = PathTree::new(dfs.graph);
+        for (edge, node) in dfs {
+            tree.insert_parent(node.id(), edge.map(|e| e.id()));
+        }
+        tree
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::graph::traits::{Graph, OrdinalGraph, WithCapacity};
