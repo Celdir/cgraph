@@ -1,3 +1,4 @@
+pub mod bridges;
 pub mod components;
 pub mod errors;
 pub mod flow;
