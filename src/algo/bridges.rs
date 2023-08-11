@@ -1,23 +1,71 @@
 use crate::graph::edge::Edge;
-use crate::graph::traits::Graph;
+use crate::graph::node::Node;
+use crate::graph::traits::UndirectedGraph;
 use crate::iter::dfs::dfs;
 use std::cmp::min;
 use std::collections::HashMap;
 
 pub fn bridges<'a, G>(graph: &'a G) -> Vec<Edge<'a, G::NId, G::EId, G::E>>
 where
-    G: Graph,
+    G: UndirectedGraph,
+{
+    let dp = dp(graph);
+    graph
+        .edges()
+        .filter(|edge| {
+            if dp.order[&edge.v()] > dp.order[&edge.u()] {
+                dp.low[&edge.v()] > dp.order[&edge.u()]
+            } else {
+                dp.low[&edge.u()] > dp.order[&edge.v()]
+            }
+        })
+        .collect()
+}
+
+pub fn articulation_points<'a, G>(graph: &'a G) -> Vec<Node<'a, G::NId, G::N>>
+where
+    G: UndirectedGraph,
+{
+    let dp = dp(graph);
+    graph
+        .nodes()
+        .filter(|node| {
+            let id = node.id();
+            if dp.roots.contains_key(&id) {
+                dp.roots[&id] > 1
+            } else {
+                for (_, neighbor) in graph.adj(id).unwrap() {
+                    let nid = neighbor.id();
+                    if dp.order[&nid] > dp.order[&id] && dp.low[&nid] >= dp.order[&id] {
+                        return true;
+                    }
+                }
+                false
+            }
+        })
+        .collect()
+}
+
+fn dp<'a, G>(graph: &'a G) -> DP<G>
+where
+    G: UndirectedGraph,
 {
     let mut order = HashMap::new();
     let mut low = HashMap::new();
+    let mut roots = HashMap::new(); // maps root id to number of children
     let mut time = 0;
     for root in graph.nodes() {
         let root_id = root.id();
         if !order.contains_key(&root_id) {
+            roots.insert(root_id, 0);
+
             let dfs: Vec<_> = dfs(graph, root_id).collect();
-            for (_, node) in &dfs {
+            for (edge, node) in &dfs {
                 order.insert(node.id(), time);
                 time += 1;
+                if edge.is_some() && edge.as_ref().unwrap().other(node.id()) == root_id {
+                    roots.insert(root_id, roots[&root_id] + 1);
+                }
             }
 
             for (parent_edge, node) in dfs.iter().rev() {
@@ -37,16 +85,21 @@ where
             }
         }
     }
+    DP { order, low, roots }
+}
 
-    graph
-        .edges()
-        .filter(|edge| low[&edge.v()] > order[&edge.u()])
-        .collect()
+struct DP<G>
+where
+    G: UndirectedGraph,
+{
+    order: HashMap<G::NId, usize>,
+    low: HashMap<G::NId, usize>,
+    roots: HashMap<G::NId, usize>,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::algo::bridges::bridges;
+    use crate::algo::bridges::{articulation_points, bridges};
     use crate::graph::traits::OrdinalGraph;
     use crate::graph::types::UnListGraph;
 
@@ -57,7 +110,7 @@ mod tests {
         // |         |
         // |         |
         // N2 ----- N3
-        let mut graph = UnListGraph::builder()
+        let graph = UnListGraph::builder()
             .with_size(4)
             .edge(0, 1, ())
             .edge(0, 2, ())
@@ -68,24 +121,62 @@ mod tests {
     }
 
     #[test]
-    fn two_bridges() {
+    fn square_no_articulation() {
+        // N0 ----- N1
+        // |         |
+        // |         |
+        // |         |
+        // N2 ----- N3
+        let graph = UnListGraph::builder()
+            .with_size(4)
+            .edge(0, 1, ())
+            .edge(0, 2, ())
+            .edge(2, 3, ())
+            .edge(1, 3, ())
+            .build();
+        assert_eq!(articulation_points(&graph).len(), 0);
+    }
+
+    #[test]
+    fn two_articulation_points() {
         // N0 ----- N1 ----- N4
         // |         |
         // |         |
         // |         |
         // N2 ----- N3 ----- N5
-        let mut graph = UnListGraph::builder()
+        let graph = UnListGraph::builder()
             .with_size(6)
             .edge(0, 1, ())
             .edge(0, 2, ())
             .edge(2, 3, ())
             .edge(1, 3, ())
             .edge(1, 4, ())
-            .edge(3, 5, ())
+            .edge(5, 3, ())
             .build();
-        let bridges = bridges(&graph);
-        assert_eq!(bridges.len(), 2);
-        assert_eq!(bridges[0].id(), 4);
-        assert_eq!(bridges[1].id(), 5);
+        let points = articulation_points(&graph);
+        assert_eq!(points.len(), 2);
+        assert_eq!(points[0].id(), 1);
+        assert_eq!(points[1].id(), 3);
+    }
+
+    #[test]
+    fn one_articulation_point() {
+        // N0 ----- N1 ----- N3
+        // |      / |      /
+        // |   __/  |   __/
+        // | _/     | _/
+        // N2       N4
+        let graph = UnListGraph::builder()
+            .with_size(5)
+            .edge(0, 1, ())
+            .edge(0, 2, ())
+            .edge(2, 1, ())
+            .edge(1, 3, ())
+            .edge(1, 4, ())
+            .edge(4, 3, ())
+            .build();
+        let points = articulation_points(&graph);
+        assert_eq!(points.len(), 1);
+        assert_eq!(points[0].id(), 1);
     }
 }
