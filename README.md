@@ -1,6 +1,16 @@
 # CGraph - composable graph
 
 TODO 
+ - Simplify user experience of building a graph by creating an Abstract Factory type of Builder, say "GraphBuilder", where you can specify all the variant details like keyed vs ordinal,
+ flat vs adj list vs adj map, directed vs undirected vs flow, etc. 
+    - Something like: GraphBuilder<N, E>::keyed<&str>().directed().flat().build()
+    - Tree of builders to navigate this. i.e. GraphBuilder -> KeyedGraphBuilder -> DirectedGraphBuilder -> build()
+    - could have defaults for containers, e.g. default to "flat" unless otherwise specified. This can
+    - alternatively, the builder can explicitly take strategy enum values and infer the correct type. like, telling giving it FASTREADS vs FASTWRITES
+    - In general, find a good implementation for the Strategy pattern with graphs
+    - following the subsequent TODO, don't include keyed in the builder, everything is ordinal and users can optionally use the Keyed wrapper
+ - Refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Use Keyed<> wrapper struct on arbitrary graph whenever needed.
+ - Add some kind of postfix calculation option for a Dfs that simulates calculating something after a recursive call. This can be done by reading the iterator in reverse.
  - Refactor Traversal into Tree trait and Traversal supertrait, impl Tree for ShortestPathTree, etc.
     - Maybe add `root()` function to Tree that gives either Node or NId
  - Better error messages: derive Debug for all data and format node ids, etc into errors
@@ -17,7 +27,6 @@ TODO
  - Move `_mut()` iteration methods to their own trait, e.g. GraphMut
  - Add `between_multi_mut()`.
  - implement MultiGraph for CGraph and MultiAdj for relevant adj containers
- - Possible refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Create a wrapper struct KeyedGraph that maintains a map of keys to ordinals and an underlying ordinal graph, and provides a `put_node` method.
  - Reconsider all of the Option<> return values in functions that take node and edge ids. It might be better to panic on invalid ids instead, and document "valid ids" as a precondition of using the library
  - For containers like Vec<Node>, mark with an Ordinal marker trait. When AdjContainer is Ordinal, require NodeContainer to be ordinal also
  - Containers that are not Ordinal can be marked with Keyed
