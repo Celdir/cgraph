@@ -3,7 +3,7 @@ use crate::graph::edge::Edge;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Tree, WeightedPathTree};
 use std::cmp::Ord;
-use std::collections::HashMap;
+
 use std::default::Default;
 use std::ops::Add;
 

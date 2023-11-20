@@ -77,7 +77,7 @@ mod tests {
     use crate::algo::shortest_paths::astar::astar;
     use crate::graph::traits::{Graph, KeyedGraph};
     use crate::graph::types::UnMapGraph;
-    use crate::iter::traits::Traversal;
+    
 
     #[test]
     fn astar_grid() {
