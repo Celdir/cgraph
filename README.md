@@ -1,6 +1,10 @@
 # CGraph - composable graph
 
 TODO 
+ - Optimizations:
+    - Create an EmptyContainer that implements both NodeContainer and EdgeContainer to be used when the node or edge type is `()`
+    - Consider calculating paths by getting all edge ids first and then resolving edge data / nodes afterwards, better cache locality
+    - Figure out a scheme to store adjacency list edges in an order that optimizes cache locality, especially for a flat adj list. e.g. reorder the "nodes" (blocks of edges) so that adjacent nodes are next to each other.
  - Simplify user experience of building a graph by creating an Abstract Factory type of Builder, say "GraphBuilder", where you can specify all the variant details like keyed vs ordinal,
  flat vs adj list vs adj map, directed vs undirected vs flow, etc. 
     - Something like: GraphBuilder<N, E>::keyed<&str>().directed().flat().build()
