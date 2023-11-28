@@ -1,4 +1,22 @@
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::marker::PhantomData;
+
 use crate::graph::traits::{KeyedGraph, OrdinalGraph, WithCapacity};
+
+use crate::graph::keyed::Keyed;
+
+use super::cgraph::CGraph;
+use super::containers::adj::adj_list::AdjList;
+use super::containers::adj::di::Di;
+use super::containers::adj::flat_adj_list::FlatAdjList;
+use super::containers::adj::traits::AdjContainer;
+use super::containers::adj::un::Un;
+use super::containers::edge::edge_stable_vec::EdgeStableVec;
+use super::containers::edge::traits::EdgeContainer;
+use super::containers::node::node_stable_vec::NodeStableVec;
+use super::containers::node::traits::{NodeContainer, OrdinalNodeContainer};
+use super::flow::{Flow, FlowValue};
 
 pub struct OrdinalGraphBuilder<G: OrdinalGraph + WithCapacity> {
     nodes: Vec<G::N>,
@@ -83,5 +101,167 @@ impl<G: KeyedGraph + WithCapacity> KeyedGraphBuilder<G> {
 
     pub fn build(self) -> G {
         G::from_keyed(self.nodes, self.edges)
+    }
+}
+
+pub struct GraphBuilder<N, E> {
+    _n: PhantomData<N>,
+    _e: PhantomData<E>,
+}
+
+pub struct ShapeChoice<NC, EC, AC>
+where
+    NC: NodeContainer + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    _nc: PhantomData<NC>,
+    _ec: PhantomData<EC>,
+    _ac: PhantomData<AC>,
+}
+
+pub struct DirectionChoice<NC, EC, AC>
+where
+    NC: NodeContainer + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    _nc: PhantomData<NC>,
+    _ec: PhantomData<EC>,
+    _ac: PhantomData<AC>,
+}
+
+pub struct KeyChoice<NC, EC, AC>
+where
+    NC: NodeContainer + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    _nc: PhantomData<NC>,
+    _ec: PhantomData<EC>,
+    _ac: PhantomData<AC>,
+}
+
+impl<N, E> GraphBuilder<N, E> {
+    pub fn new() -> ShapeChoice<NodeStableVec<N>, EdgeStableVec<usize, E>, AdjList<usize>> {
+        ShapeChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+}
+
+impl<NC, EC, AC> ShapeChoice<NC, EC, AC>
+where
+    NC: NodeContainer<NId = usize> + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    pub fn adj_flat(self) -> DirectionChoice<NC, EC, FlatAdjList<EC::EId>>
+    where
+        EC::EId: Ord,
+    {
+        DirectionChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+
+    pub fn adj_list(self) -> DirectionChoice<NC, EC, AdjList<EC::EId>> {
+        DirectionChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+}
+
+impl<NC, EC, AC> DirectionChoice<NC, EC, AC>
+where
+    NC: NodeContainer<NId = usize> + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId, EId = usize> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    pub fn directed(self) -> KeyChoice<NC, EC, Di<AC>> {
+        KeyChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+    pub fn di(self) -> KeyChoice<NC, EC, Di<AC>> {
+        self.directed()
+    }
+
+    pub fn undirected(self) -> KeyChoice<NC, EC, Un<AC>> {
+        KeyChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+    pub fn un(self) -> KeyChoice<NC, EC, Un<AC>> {
+        self.undirected()
+    }
+
+    pub fn flow(self) -> KeyChoice<NC, EdgeStableVec<NC::NId, Flow<EC::E>>, AC>
+    where
+        EC::E: FlowValue,
+    {
+        KeyChoice {
+            _nc: PhantomData::default(),
+            _ec: PhantomData::default(),
+            _ac: PhantomData::default(),
+        }
+    }
+}
+
+impl<NC, EC, AC> KeyChoice<NC, EC, AC>
+where
+    NC: NodeContainer + WithCapacity,
+    EC: EdgeContainer<NId = NC::NId> + WithCapacity,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId> + WithCapacity,
+{
+    pub fn keyed<T: Eq + Hash + Copy + Debug>(
+        self,
+    ) -> KeyedGraphBuilder<Keyed<CGraph<NC, EC, AC>, T>>
+    where
+        NC: OrdinalNodeContainer,
+    {
+        KeyedGraphBuilder::<Keyed<CGraph<NC, EC, AC>, T>>::new()
+    }
+
+    pub fn ordinal(self) -> OrdinalGraphBuilder<CGraph<NC, EC, AC>>
+    where
+        NC: OrdinalNodeContainer,
+    {
+        OrdinalGraphBuilder::<CGraph<NC, EC, AC>>::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{graph::builder::GraphBuilder, iter::dfs::dfs};
+
+    #[test]
+    fn build_flat_directed_ordinal() {
+        let graph = GraphBuilder::<(), ()>::new()
+            .adj_flat()
+            .di()
+            .ordinal()
+            .with_size(5)
+            .edge(0, 1, ())
+            .edge(2, 1, ())
+            .edge(3, 2, ())
+            .edge(4, 0, ())
+            .build();
+
+        let path_from_4: Vec<_> = dfs(&graph, 4).map(|(_, node)| node.id()).collect();
+        assert_eq!(path_from_4, vec![4, 0, 1]);
+
+        let path_from_3: Vec<_> = dfs(&graph, 3).map(|(_, node)| node.id()).collect();
+        assert_eq!(path_from_3, vec![3, 2, 1]);
     }
 }

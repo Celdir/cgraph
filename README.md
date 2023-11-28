@@ -13,6 +13,7 @@ TODO
     - alternatively, the builder can explicitly take strategy enum values and infer the correct type. like, telling giving it FASTREADS vs FASTWRITES
     - In general, find a good implementation for the Strategy pattern with graphs
     - following the subsequent TODO, don't include keyed in the builder, everything is ordinal and users can optionally use the Keyed wrapper
+    - Create builder for Flow graph that uses `insert_flow_edge` and such
  - Refactor - get rid of all these separate Keyed and Ordinal traits for containers and such, just assume everything is ordinal with usize ids. Use Keyed<> wrapper struct on arbitrary graph whenever needed.
  - Add some kind of postfix calculation option for a Dfs that simulates calculating something after a recursive call. This can be done by reading the iterator in reverse.
  - Refactor Traversal into Tree trait and Traversal supertrait, impl Tree for ShortestPathTree, etc.

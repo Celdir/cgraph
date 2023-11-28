@@ -137,12 +137,12 @@ mod tests {
     use crate::algo::flow::dinic::dinic;
     use crate::graph::flow::FlowGraph;
     use crate::graph::traits::OrdinalGraph;
-    use crate::graph::types::FlatFlowGraph;
+    use crate::graph::types::FlowFlatGraph;
     use std::matches;
 
     #[test]
     fn dinic_base_case() {
-        let mut graph = FlatFlowGraph::new();
+        let mut graph = FlowFlatGraph::new();
         for _ in 0..6 {
             graph.insert_node(());
         }
@@ -177,14 +177,14 @@ mod tests {
 
     #[test]
     fn dinic_source_not_found() {
-        let mut graph = FlatFlowGraph::<(), i32>::new();
+        let mut graph = FlowFlatGraph::<(), i32>::new();
         let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
         assert!(matches!(flow_err, AlgoError::SourceNotFound(..)));
     }
 
     #[test]
     fn dinic_sink_not_found() {
-        let mut graph = FlatFlowGraph::<(), i32>::new();
+        let mut graph = FlowFlatGraph::<(), i32>::new();
         graph.insert_node(());
         let flow_err = dinic(&mut graph, 0, 5).unwrap_err();
         assert!(matches!(flow_err, AlgoError::SinkNotFound(..)));

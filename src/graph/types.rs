@@ -23,5 +23,9 @@ pub type DiFlatGraph<N, E> =
 pub type UnFlatGraph<N, E> =
     CGraph<NodeStableVec<N>, EdgeStableVec<usize, E>, Un<FlatAdjList<usize>>>;
 
-pub type FlatFlowGraph<N, V> =
+pub type FlowFlatGraph<N, V> =
     CGraph<NodeStableVec<N>, EdgeStableVec<usize, Flow<V>>, FlatAdjList<usize>>;
+pub type FlowListGraph<N, V> =
+    CGraph<NodeStableVec<N>, EdgeStableVec<usize, Flow<V>>, AdjList<usize>>;
+pub type FlowMapGraph<Id, N, V> =
+    CGraph<NodeMap<Id, N>, EdgeStableVec<usize, Flow<V>>, AdjMap<Id, usize>>;
