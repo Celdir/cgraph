@@ -1,6 +1,7 @@
 use crate::graph::containers::adj::traits::{AdjContainer, OrdinalAdjContainer, RawAdjContainer};
 use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ord;
 use std::default::Default;
 use std::fmt::Debug;
@@ -10,9 +11,10 @@ use std::slice::Iter;
 
 #[derive(Default)]
 pub struct FlatAdjList<EId> {
-    start: Vec<usize>, // start[u] is start index of adj for outgoing edges of u
+    start: RefCell<Vec<usize>>, // start[u] is start index of adj for outgoing edges of u
     // calcuate end[u] as start[u+1]
-    adj: Vec<(usize, usize, EId)>,
+    adj: RefCell<Vec<(usize, usize, EId)>>,
+    needs_reindex: Cell<bool>,
 }
 
 impl<EId> FlatAdjList<EId>
@@ -20,31 +22,32 @@ where
     EId: Eq + Hash + Copy + Debug + Ord,
 {
     fn edge_range(&self, u: usize) -> Option<(usize, usize)> {
-        if u >= self.start.len() {
+        let start = self.start.borrow();
+        if u >= start.len() {
             return None;
         }
         Some((
-            self.start[u],
-            self.start.get(u + 1).copied().unwrap_or(self.adj.len()),
+            start[u],
+            start.get(u + 1).copied().unwrap_or(self.adj.borrow().len()),
         ))
     }
 
-    fn reindex_from(&mut self, u: usize, delta: i32) {
-        if delta == 0 {
-            return;
-        }
+    fn reindex(&self) {
+        let mut start = self.start.borrow_mut();
+        let mut adj = self.adj.borrow_mut();
+        adj.sort();
+        adj.dedup();
 
-        let delta_usize = delta.abs() as usize;
-        for node in u..self.start.len() {
-            match delta {
-                0.. => {
-                    self.start[node] += delta_usize;
-                }
-                _ => {
-                    self.start[node] -= delta_usize;
-                }
+        start.fill(adj.len());
+        for i in (0..adj.len()).rev() {
+            start[adj[i].0] = i;
+        }
+        for i in (0..start.len()).rev() {
+            if start[i] == adj.len() && i + 1 < start.len() {
+                start[i] = start[i + 1];
             }
         }
+        self.needs_reindex.set(false);
     }
 }
 
@@ -58,25 +61,38 @@ where
     type AdjIterator<'a> = AdjIterator<'a, EId> where Self: 'a;
 
     fn adj(&self, u: usize) -> Option<AdjIterator<EId>> {
+        if self.needs_reindex.get() {
+            self.reindex();
+        }
         let (s, e) = self.edge_range(u)?;
+        let adj = unsafe { self.adj.try_borrow_unguarded().unwrap() };
         Some(AdjIterator {
-            inner: self.adj[s..e].iter(),
+            inner: adj[s..e].iter(),
         })
     }
 
     // O(log(E))
     fn between(&self, u: usize, v: usize) -> Option<Self::EId> {
+        if self.needs_reindex.get() {
+            self.reindex();
+        }
         match self
             .adj
+            .borrow()
             .binary_search_by(|probe| (probe.0, probe.1).cmp(&(u, v)))
         {
-            Ok(pos) => Some(self.adj[pos].2),
+            Ok(pos) => Some(self.adj.borrow()[pos].2),
             Err(_) => None,
         }
     }
 
     fn degree(&self, u: Self::NId) -> usize {
-        if u >= self.start.len() {
+        if self.needs_reindex.get() {
+            self.reindex();
+        }
+        println!("{:?}", self.adj.borrow());
+        println!("{:?}", self.start.borrow());
+        if u >= self.start.borrow().len() {
             return 0;
         }
         let (s, e) = self.edge_range(u).unwrap_or((0, 0));
@@ -84,8 +100,9 @@ where
     }
 
     fn register_node(&mut self, u: usize) {
-        if u >= self.adj.len() {
-            self.start.resize(u + 1, self.adj.len());
+        let len = self.adj.borrow().len();
+        if u >= len {
+            self.start.get_mut().resize(u + 1, len);
         }
     }
 
@@ -95,26 +112,36 @@ where
     }
 
     fn clear_node(&mut self, u: Self::NId) -> Result<Vec<(Self::EId, Self::NId)>, GraphError> {
+        if u >= self.start.borrow().len() {
+            return Err(GraphError::NodeNotFound(format!("{:?}", u)));
+        }
         let ids: Vec<_> = self
-            .adj(u)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?
+            .adj
+            .borrow()
+            .iter()
+            .filter(|(node, _, _)| u == *node)
+            .map(|&(_, v, id)| (id, v))
             .collect();
-        let (s, e) = self
-            .edge_range(u)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
-
-        self.adj.drain(s..e);
-
-        let start_delta = -((e - s) as i32);
-        self.reindex_from(u + 1, start_delta);
+        let adj: Vec<_> = self
+            .adj
+            .take()
+            .into_iter()
+            .filter(|&(node, _, _)| u != node)
+            .collect();
+        self.adj.replace(adj);
+        self.needs_reindex.set(true);
 
         Ok(ids)
     }
 
     // O(log(E))
     fn contains_adj(&self, u: usize, v: usize) -> bool {
+        if self.needs_reindex.get() {
+            self.reindex();
+        }
         match self
             .adj
+            .borrow()
             .binary_search_by(|probe| (probe.0, probe.1).cmp(&(u, v)))
         {
             Ok(_) => true,
@@ -124,26 +151,20 @@ where
 
     fn insert_adj(&mut self, u: usize, v: usize, edge_id: Self::EId) {
         let item = (u, v, edge_id);
-        match self.adj.binary_search(&item) {
-            Ok(_) => {
-                panic!("this edge id already exists in adjacency!");
-            } // item already in adj
-            Err(pos) => {
-                self.adj.insert(pos, item);
-                self.reindex_from(u + 1, 1);
-            }
-        }
+        self.adj.get_mut().push(item);
+        self.needs_reindex.set(true);
     }
 
     // O(E)
     fn remove_adj(&mut self, u: Self::NId, v: Self::NId, edge_id: Self::EId) {
-        let (s, e) = self.edge_range(u).unwrap();
-        let index = s + self.adj[s..e]
+        let idx = self
+            .adj
+            .borrow()
             .iter()
-            .position(|&tup| tup == (u, v, edge_id))
+            .position(|&e| e == (u, v, edge_id))
             .unwrap();
-        self.adj.remove(index);
-        self.reindex_from(u + 1, -1);
+        self.adj.get_mut().remove(idx);
+        self.needs_reindex.set(true);
     }
 }
 
@@ -153,8 +174,9 @@ impl<EId> RawAdjContainer for FlatAdjList<EId> where EId: Eq + Hash + Copy + Deb
 impl<EId> WithCapacity for FlatAdjList<EId> {
     fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
-            start: Vec::with_capacity(node_capacity),
-            adj: Vec::with_capacity(edge_capacity),
+            start: Vec::with_capacity(node_capacity).into(),
+            adj: Vec::with_capacity(edge_capacity).into(),
+            needs_reindex: false.into(),
         }
     }
 }
