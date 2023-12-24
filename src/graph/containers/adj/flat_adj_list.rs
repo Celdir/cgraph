@@ -90,8 +90,6 @@ where
         if self.needs_reindex.get() {
             self.reindex();
         }
-        println!("{:?}", self.adj.borrow());
-        println!("{:?}", self.start.borrow());
         if u >= self.start.borrow().len() {
             return 0;
         }
