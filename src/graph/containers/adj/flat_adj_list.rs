@@ -98,7 +98,7 @@ where
     }
 
     fn register_node(&mut self, u: usize) {
-        let len = self.adj.borrow().len();
+        let len = self.start.borrow().len();
         if u >= len {
             self.start.get_mut().resize(u + 1, len);
         }
