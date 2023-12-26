@@ -85,7 +85,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::mst::mst;
-    use crate::graph::traits::{Graph, KeyedGraph, WithCapacity, GraphMut};
+    use crate::graph::traits::{KeyedGraph, WithCapacity, GraphMut};
     use crate::graph::types::UnMapGraph;
 
     #[test]

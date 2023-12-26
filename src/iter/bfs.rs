@@ -132,7 +132,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::traits::{Graph, GraphMut, KeyedGraph, OrdinalGraph, WithCapacity};
+    use crate::graph::traits::{GraphMut, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
     use crate::iter::bfs::{bfs, bfs_where};
     use std::collections::HashMap;

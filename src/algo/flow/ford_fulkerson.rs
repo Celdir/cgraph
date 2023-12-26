@@ -42,7 +42,7 @@ mod tests {
     use crate::algo::errors::AlgoError;
     use crate::algo::flow::ford_fulkerson::ford_fulkerson;
     use crate::graph::flow::FlowGraph;
-    use crate::graph::traits::{GraphMut, OrdinalGraph};
+    use crate::graph::traits::{OrdinalGraph};
     use crate::graph::types::FlowFlatGraph;
     use std::matches;
 

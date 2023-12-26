@@ -45,7 +45,7 @@ pub fn topological_sort<'a, G: DirectedGraph>(
 mod tests {
     use crate::algo::errors::AlgoError;
     use crate::algo::topological_sort::topological_sort;
-    use crate::graph::traits::{Graph, OrdinalGraph, WithCapacity, GraphMut};
+    use crate::graph::traits::{OrdinalGraph, WithCapacity, GraphMut};
     use crate::graph::types::DiListGraph;
 
     #[test]

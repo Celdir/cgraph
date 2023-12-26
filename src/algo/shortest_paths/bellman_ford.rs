@@ -97,7 +97,7 @@ where
 mod tests {
     use crate::algo::errors::AlgoError;
     use crate::algo::shortest_paths::bellman_ford::bellman_ford;
-    use crate::graph::traits::{Graph, GraphMut, KeyedGraph, OrdinalGraph, WithCapacity};
+    use crate::graph::traits::{GraphMut, KeyedGraph, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnMapGraph};
     use crate::iter::traits::Tree;
     use std::matches;
