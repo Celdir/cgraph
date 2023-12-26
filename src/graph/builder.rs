@@ -10,13 +10,13 @@ use super::cgraph::CGraph;
 use super::containers::adj::adj_list::AdjList;
 use super::containers::adj::di::Di;
 use super::containers::adj::flat_adj_list::FlatAdjList;
-use super::containers::adj::traits::AdjContainer;
+use super::containers::adj::traits::{AdjContainer, RawAdjContainer};
 use super::containers::adj::un::Un;
 use super::containers::edge::edge_stable_vec::EdgeStableVec;
 use super::containers::edge::traits::EdgeContainer;
 use super::containers::node::node_stable_vec::NodeStableVec;
 use super::containers::node::traits::{NodeContainer, OrdinalNodeContainer};
-use super::flow::{Flow, FlowValue};
+use super::flow::{Flow, FlowGraph, FlowValue};
 
 pub struct OrdinalGraphBuilder<G: OrdinalGraph + WithCapacity> {
     nodes: Vec<G::N>,
@@ -101,6 +101,63 @@ impl<G: KeyedGraph + WithCapacity> KeyedGraphBuilder<G> {
 
     pub fn build(self) -> G {
         G::from_keyed(self.nodes, self.edges)
+    }
+}
+
+pub struct FlowGraphBuilder<G: FlowGraph + OrdinalGraph + WithCapacity> {
+    nodes: Vec<G::N>,
+    edges: Vec<(G::NId, G::NId, G::FlowVal)>,
+}
+
+impl<G: FlowGraph + OrdinalGraph + WithCapacity> FlowGraphBuilder<G> {
+    pub fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+            edges: Vec::new(),
+        }
+    }
+
+    pub fn node(mut self, n: G::N) -> Self {
+        self.nodes.push(n);
+        self
+    }
+
+    pub fn nodes(mut self, mut nodes: Vec<G::N>) -> Self {
+        self.nodes.append(&mut nodes);
+        self
+    }
+
+    pub fn edge(mut self, u: G::NId, v: G::NId, cap: G::FlowVal) -> Self {
+        self.edges.push((u, v, cap));
+        self
+    }
+
+    pub fn edges(mut self, mut edges: Vec<(G::NId, G::NId, G::FlowVal)>) -> Self {
+        self.edges.append(&mut edges);
+        self
+    }
+
+    pub fn build(self) -> G {
+        let mut graph = G::with_capacity(self.nodes.len(), self.edges.len());
+        for n in self.nodes {
+            graph.insert_node(n);
+        }
+        for (u, v, cap) in self.edges {
+            graph
+                .insert_flow_edge(u, v, cap)
+                .expect("node ids should refer to valid nodes");
+        }
+        graph
+    }
+}
+
+impl<G> FlowGraphBuilder<G>
+where
+    G: FlowGraph + OrdinalGraph<N = ()> + WithCapacity,
+{
+    pub fn with_size(mut self, node_count: usize) -> Self {
+        self.nodes.resize(node_count, ());
+        self
     }
 }
 
@@ -206,15 +263,13 @@ where
         self.undirected()
     }
 
-    pub fn flow(self) -> KeyChoice<NC, EdgeStableVec<NC::NId, Flow<EC::E>>, AC>
+    pub fn flow(self) -> FlowGraphBuilder<CGraph<NC, EdgeStableVec<NC::NId, Flow<EC::E>>, AC>>
     where
         EC::E: FlowValue,
+        NC: OrdinalNodeContainer,
+        AC: RawAdjContainer,
     {
-        KeyChoice {
-            _nc: PhantomData::default(),
-            _ec: PhantomData::default(),
-            _ac: PhantomData::default(),
-        }
+        FlowGraphBuilder::new()
     }
 }
 
@@ -243,7 +298,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{graph::builder::GraphBuilder, iter::dfs::dfs};
+    use crate::{graph::builder::GraphBuilder, iter::dfs::dfs, algo::flow::dinic::dinic};
 
     #[test]
     fn build_flat_directed_ordinal() {
@@ -263,5 +318,20 @@ mod tests {
 
         let path_from_3: Vec<_> = dfs(&graph, 3).map(|(_, node)| node.id()).collect();
         assert_eq!(path_from_3, vec![3, 2, 1]);
+    }
+
+    #[test]
+    fn build_flow() {
+        let mut graph = GraphBuilder::<(), isize>::new()
+            .adj_flat()
+            .flow()
+            .with_size(4)
+            .edge(0, 1, 1)
+            .edge(0, 2, 1)
+            .edge(1, 2, 1)
+            .edge(1, 3, 1)
+            .edge(2, 3, 1)
+            .build();
+        assert_eq!(dinic(&mut graph, 0, 3).unwrap(), 2);
     }
 }
