@@ -5,12 +5,12 @@ use crate::graph::containers::node::traits::NodeContainer;
 use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::{FlowError, GraphError};
 use crate::graph::node::Node;
-use crate::graph::traits::Graph;
+use crate::graph::traits::{Graph, GraphMut};
 use std::cmp::Ord;
 use std::fmt::Debug;
 use std::ops::{Add, Neg, Sub};
 
-pub trait FlowGraph: Graph<E = Flow<<Self as FlowGraph>::FlowVal>> {
+pub trait FlowGraph: GraphMut<E = Flow<<Self as FlowGraph>::FlowVal>> {
     type BackEdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
     where
         Self: 'a;
@@ -59,7 +59,6 @@ pub trait FlowGraph: Graph<E = Flow<<Self as FlowGraph>::FlowVal>> {
         id: Self::EId,
     ) -> Result<(Self::E, (Self::EId, Self::E)), GraphError>;
 
-    // TODO: replace 'static str with custom error type
     fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), GraphError>;
 
     fn reset_flow(&mut self);
@@ -232,7 +231,7 @@ where
 
 pub struct ModuloEdgeIterator<'a, G>
 where
-    G: 'a + Graph<EId = usize>,
+    G: 'a + GraphMut<EId = usize>,
 {
     inner: G::EdgeIterator<'a>,
     modulus: usize,
@@ -241,7 +240,7 @@ where
 
 impl<'a, G> Iterator for ModuloEdgeIterator<'a, G>
 where
-    G: Graph<EId = usize>,
+    G: GraphMut<EId = usize>,
 {
     type Item = Edge<'a, G::NId, G::EId, G::E>;
 
@@ -256,7 +255,7 @@ where
 
 pub struct ModuloAdjIterator<'a, G>
 where
-    G: 'a + Graph<EId = usize>,
+    G: 'a + GraphMut<EId = usize>,
 {
     inner: G::AdjIterator<'a>,
     modulus: usize,
@@ -265,7 +264,7 @@ where
 
 impl<'a, G> Iterator for ModuloAdjIterator<'a, G>
 where
-    G: Graph<EId = usize>,
+    G: GraphMut<EId = usize>,
 {
     type Item = (Edge<'a, G::NId, G::EId, G::E>, Node<'a, G::NId, G::N>);
 

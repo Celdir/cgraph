@@ -2,7 +2,8 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
-    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, UndirectedGraph, WithCapacity,
+    DirectedGraph, DirectedGraphMut, Graph, GraphMut, KeyedGraph, OrdinalGraph, UndirectedGraph,
+    WithCapacity,
 };
 
 use std::default::Default;
@@ -31,14 +32,11 @@ where
     type EId = G::EId;
 
     type NodeIterator<'a> = NodeIterator<'a, G, Id> where Self: 'a;
-    type NodeMutIterator<'a> = NodeMutIterator<'a, G, Id> where Self: 'a;
 
     type EdgeIterator<'a> = EdgeIterator<'a, G, Id> where Self: 'a;
-    type EdgeMutIterator<'a> = EdgeMutIterator<'a, G, Id> where Self: 'a;
 
     type AdjIterator<'a> = AdjIterator<'a, G, Id> where Self: 'a;
     type AdjIdsIterator<'a> = AdjIdsIterator<'a, G, Id> where Self: 'a;
-    type AdjMutIterator<'a> = AdjMutIterator<'a, G, Id> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         self.graph.len()
@@ -54,17 +52,81 @@ where
         Some(map_node(&self.keys, inner_node))
     }
 
-    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
-        let &key = self.keys.get_by_left(&id)?;
-        let inner_node_mut = self.graph.node_mut(key)?;
-        Some(map_node_mut(&self.keys, inner_node_mut))
-    }
-
     fn degree(&self, u: Self::NId) -> usize {
         match self.keys.get_by_left(&u) {
             Some(&key) => self.graph.degree(key),
             _ => 0,
         }
+    }
+
+    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
+        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
+        match key_pair {
+            (Some(&u_key), Some(&v_key)) => self.graph.contains_edge(u_key, v_key),
+            _ => false,
+        }
+    }
+
+    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+        let inner_edge = self.graph.edge(id)?;
+        Some(map_edge(&self.keys, inner_edge))
+    }
+
+    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
+        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
+        match key_pair {
+            (Some(&u_key), Some(&v_key)) => {
+                Some(map_edge(&self.keys, self.graph.between(u_key, v_key)?))
+            }
+            _ => None,
+        }
+    }
+
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
+        NodeIterator {
+            keys: &self.keys,
+            inner: self.graph.nodes(),
+        }
+    }
+
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
+        EdgeIterator {
+            keys: &self.keys,
+            inner: self.graph.edges(),
+        }
+    }
+
+    // Returns out edges for directed graph or all edges for undirected
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjIterator {
+            keys: &self.keys,
+            inner: self.graph.adj(key)?,
+        })
+    }
+
+    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjIdsIterator {
+            keys: &self.keys,
+            inner: self.graph.adj_ids(key)?,
+        })
+    }
+}
+
+impl<G, Id> GraphMut for Keyed<G, Id>
+where
+    G: OrdinalGraph,
+    Id: Eq + Hash + Copy + Debug,
+{
+    type NodeMutIterator<'a> = NodeMutIterator<'a, G, Id> where Self: 'a;
+    type EdgeMutIterator<'a> = EdgeMutIterator<'a, G, Id> where Self: 'a;
+    type AdjMutIterator<'a> = AdjMutIterator<'a, G, Id> where Self: 'a;
+
+    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
+        let &key = self.keys.get_by_left(&id)?;
+        let inner_node_mut = self.graph.node_mut(key)?;
+        Some(map_node_mut(&self.keys, inner_node_mut))
     }
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
@@ -84,32 +146,9 @@ where
         self.graph.clear_node(key)
     }
 
-    fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
-        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
-        match key_pair {
-            (Some(&u_key), Some(&v_key)) => self.graph.contains_edge(u_key, v_key),
-            _ => false,
-        }
-    }
-
-    fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
-        let inner_edge = self.graph.edge(id)?;
-        Some(map_edge(&self.keys, inner_edge))
-    }
-
     fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
         let inner_edge = self.graph.edge_mut(id)?;
         Some(map_edge_mut(&self.keys, inner_edge))
-    }
-
-    fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
-        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
-        match key_pair {
-            (Some(&u_key), Some(&v_key)) => {
-                Some(map_edge(&self.keys, self.graph.between(u_key, v_key)?))
-            }
-            _ => None,
-        }
     }
 
     fn between_mut(
@@ -148,24 +187,10 @@ where
         self.graph.remove_edge(id)
     }
 
-    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
-        NodeIterator {
-            keys: &self.keys,
-            inner: self.graph.nodes(),
-        }
-    }
-
     fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a> {
         NodeMutIterator {
             keys: &self.keys,
             inner: self.graph.nodes_mut(),
-        }
-    }
-
-    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
-        EdgeIterator {
-            keys: &self.keys,
-            inner: self.graph.edges(),
         }
     }
 
@@ -174,23 +199,6 @@ where
             keys: &self.keys,
             inner: self.graph.edges_mut(),
         }
-    }
-
-    // Returns out edges for directed graph or all edges for undirected
-    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
-        Some(AdjIterator {
-            keys: &self.keys,
-            inner: self.graph.adj(key)?,
-        })
-    }
-
-    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
-        Some(AdjIdsIterator {
-            keys: &self.keys,
-            inner: self.graph.adj_ids(key)?,
-        })
     }
 
     fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
@@ -277,14 +285,6 @@ where
         })
     }
 
-    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
-        Some(AdjMutIterator {
-            keys: &self.keys,
-            inner: self.graph.out_edges_mut(key)?,
-        })
-    }
-
     fn out_degree(&self, u: Self::NId) -> usize {
         let key_opt = self.keys.get_by_left(&u);
         match key_opt {
@@ -301,20 +301,34 @@ where
         })
     }
 
-    fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
-        Some(AdjMutIterator {
-            keys: &self.keys,
-            inner: self.graph.in_edges_mut(key)?,
-        })
-    }
-
     fn in_degree(&self, u: Self::NId) -> usize {
         let key_opt = self.keys.get_by_left(&u);
         match key_opt {
             Some(&key) => self.graph.in_degree(key),
             _ => 0,
         }
+    }
+}
+
+impl<G, Id> DirectedGraphMut for Keyed<G, Id>
+where
+    G: DirectedGraphMut + OrdinalGraph,
+    Id: Eq + Hash + Copy + Debug,
+{
+    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjMutIterator {
+            keys: &self.keys,
+            inner: self.graph.out_edges_mut(key)?,
+        })
+    }
+
+    fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        let &key = self.keys.get_by_left(&u)?;
+        Some(AdjMutIterator {
+            keys: &self.keys,
+            inner: self.graph.in_edges_mut(key)?,
+        })
     }
 
     fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
@@ -362,7 +376,7 @@ where
 
 pub struct NodeMutIterator<'a, G, Id>
 where
-    G: 'a + Graph,
+    G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
@@ -404,7 +418,7 @@ where
 
 pub struct EdgeMutIterator<'a, G, Id>
 where
-    G: 'a + Graph,
+    G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
@@ -475,7 +489,7 @@ where
 
 pub struct AdjMutIterator<'a, G, Id>
 where
-    G: 'a + Graph,
+    G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
@@ -579,7 +593,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::graph::keyed::Keyed;
-    use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph};
+    use crate::graph::traits::{DirectedGraph, Graph, GraphMut, KeyedGraph};
     use crate::graph::types::{DiFlatGraph, UnFlatGraph};
 
     #[test]

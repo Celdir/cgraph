@@ -9,7 +9,8 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
-    DirectedGraph, Graph, KeyedGraph, OrdinalGraph, RawGraph, UndirectedGraph, WithCapacity,
+    DirectedGraph, DirectedGraphMut, Graph, GraphMut, KeyedGraph, OrdinalGraph, RawGraph,
+    UndirectedGraph, WithCapacity,
 };
 use std::default::Default;
 
@@ -31,14 +32,11 @@ where
     type EId = EC::EId;
 
     type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
-    type NodeMutIterator<'a> = NC::NodeMutIterator<'a> where Self: 'a;
 
     type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
-    type EdgeMutIterator<'a> = EC::EdgeMutIterator<'a> where Self: 'a;
 
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
     type AdjIdsIterator<'a> = AC::AdjIterator<'a> where Self: 'a;
-    type AdjMutIterator<'a> = GAdjMutIterator<'a, NC, EC, AC> where Self: 'a;
 
     fn len(&self) -> (usize, usize) {
         (self.nodes.len(), self.edges.len())
@@ -52,32 +50,8 @@ where
         self.nodes.node(id)
     }
 
-    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
-        self.nodes.node_mut(id)
-    }
-
     fn degree(&self, u: Self::NId) -> usize {
         self.adj.degree(u)
-    }
-
-    fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
-        if !self.contains_node(id) {
-            return Err(GraphError::NodeNotFound(format!("{:?}", id)));
-        }
-
-        self.clear_node(id)?;
-        self.adj.unregister_node(id);
-        Ok(self.nodes.remove_node(id).unwrap())
-    }
-
-    fn clear_node(&mut self, u: Self::NId) -> Result<(), GraphError> {
-        let edge_ids: Vec<_> = self.adj.clear_node(u)?;
-        for (edge_id, _) in edge_ids {
-            self.edges
-                .remove_edge(edge_id)
-                .expect("Edge should be present");
-        }
-        Ok(())
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
@@ -88,13 +62,47 @@ where
         self.edges.edge(id)
     }
 
-    fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
-        self.edges.edge_mut(id)
-    }
-
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         let edge_id = self.adj.between(u, v)?;
         self.edges.edge(edge_id)
+    }
+
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
+        self.nodes.nodes()
+    }
+
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
+        self.edges.edges()
+    }
+
+    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        Some(GAdjIterator {
+            graph: &self,
+            inner: self.adj.adj(u)?,
+        })
+    }
+
+    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
+        Some(self.adj.adj(u)?)
+    }
+}
+
+impl<NC, EC, AC> GraphMut for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    type NodeMutIterator<'a> = NC::NodeMutIterator<'a> where Self: 'a;
+    type EdgeMutIterator<'a> = EC::EdgeMutIterator<'a> where Self: 'a;
+    type AdjMutIterator<'a> = GAdjMutIterator<'a, NC, EC, AC> where Self: 'a;
+
+    fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
+        self.nodes.node_mut(id)
+    }
+
+    fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
+        self.edges.edge_mut(id)
     }
 
     fn between_mut(
@@ -134,31 +142,32 @@ where
         Ok(self.edges.remove_edge(id).unwrap())
     }
 
-    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
-        self.nodes.nodes()
+    fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
+        if !self.contains_node(id) {
+            return Err(GraphError::NodeNotFound(format!("{:?}", id)));
+        }
+
+        self.clear_node(id)?;
+        self.adj.unregister_node(id);
+        Ok(self.nodes.remove_node(id).unwrap())
+    }
+
+    fn clear_node(&mut self, u: Self::NId) -> Result<(), GraphError> {
+        let edge_ids: Vec<_> = self.adj.clear_node(u)?;
+        for (edge_id, _) in edge_ids {
+            self.edges
+                .remove_edge(edge_id)
+                .expect("Edge should be present");
+        }
+        Ok(())
     }
 
     fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a> {
         self.nodes.nodes_mut()
     }
 
-    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
-        self.edges.edges()
-    }
-
     fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a> {
         self.edges.edges_mut()
-    }
-
-    fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        Some(GAdjIterator {
-            graph: &self,
-            inner: self.adj.adj(u)?,
-        })
-    }
-
-    fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
-        Some(self.adj.adj(u)?)
     }
 
     fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
@@ -183,14 +192,6 @@ where
         })
     }
 
-    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        Some(GAdjMutIterator {
-            nodes: &mut self.nodes,
-            edges: &mut self.edges,
-            inner: self.adj.out_adj(u)?,
-        })
-    }
-
     fn out_degree(&self, u: Self::NId) -> usize {
         self.adj.out_degree(u)
     }
@@ -202,16 +203,31 @@ where
         })
     }
 
+    fn in_degree(&self, u: Self::NId) -> usize {
+        self.adj.in_degree(u)
+    }
+}
+
+impl<NC, EC, AC> DirectedGraphMut for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: DirectedAdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
+        Some(GAdjMutIterator {
+            nodes: &mut self.nodes,
+            edges: &mut self.edges,
+            inner: self.adj.out_adj(u)?,
+        })
+    }
+
     fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
         Some(GAdjMutIterator {
             nodes: &mut self.nodes,
             edges: &mut self.edges,
             inner: self.adj.in_adj(u)?,
         })
-    }
-
-    fn in_degree(&self, u: Self::NId) -> usize {
-        self.adj.in_degree(u)
     }
 
     fn reverse_edge(&mut self, id: Self::EId) -> Result<(), GraphError> {
@@ -427,7 +443,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::traits::{DirectedGraph, Graph, KeyedGraph, OrdinalGraph};
+    use crate::graph::traits::{DirectedGraph, Graph, GraphMut, KeyedGraph, OrdinalGraph};
     use crate::graph::types::{
         DiFlatGraph, DiListGraph, DiMapGraph, UnFlatGraph, UnListGraph, UnMapGraph,
     };

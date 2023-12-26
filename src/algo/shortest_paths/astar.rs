@@ -75,7 +75,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::shortest_paths::astar::astar;
-    use crate::graph::traits::{Graph, KeyedGraph};
+    use crate::graph::traits::{Graph, KeyedGraph, GraphMut};
     use crate::graph::types::UnMapGraph;
     
 

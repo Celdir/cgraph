@@ -248,7 +248,7 @@ where
 /*
 #[cfg(test)]
 mod tests {
-    use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity};
+    use crate::graph::traits::{Graph, KeyedGraph, OrdinalGraph, WithCapacity, GraphMut};
     use crate::graph::types::{DiListGraph, UnMapGraph};
     use crate::iter::pfs::{pfs, pfs_where};
     use std::collections::HashMap;

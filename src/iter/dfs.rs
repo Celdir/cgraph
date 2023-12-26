@@ -3,7 +3,6 @@ use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Path, PathTree, Traversal, Tree};
 
-
 pub fn dfs<'a, G>(
     graph: &'a G,
     start: G::NId,
@@ -138,7 +137,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::traits::{Graph, OrdinalGraph, WithCapacity};
+    use crate::graph::traits::{Graph, GraphMut, OrdinalGraph, WithCapacity};
     use crate::graph::types::{DiListGraph, UnListGraph};
     use crate::iter::dfs::{dfs, dfs_where};
     use std::collections::HashMap;
