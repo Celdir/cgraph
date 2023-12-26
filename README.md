@@ -1,7 +1,6 @@
 # CGraph - composable graph
 
 TODO 
- - Refactor Graph traits so that iteration functions are in `Graph` and mutation ones are in `GraphMut`
  - Add a lazy-generated graph where NId is a State and nodes, edges, and adj are lazily generated based on the state.
  - Make `FlatAdjList` lazy-updating where it only reindexes on the first read after edges have been inserted.
  - Optimizations:
