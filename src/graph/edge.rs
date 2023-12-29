@@ -12,11 +12,31 @@ pub struct Edge<'a, NodeId, EdgeId, E> {
     id: EdgeId,
     origin: NodeId,
     destination: NodeId,
-    data: &'a E,
+    data: EdgeData<'a, E>,
+}
+
+#[derive(Copy, Clone)]
+pub enum EdgeData<'a, E> {
+    Ref(&'a E),
+    Value(E),
 }
 
 impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
     pub fn new(
+        id: EdgeId,
+        origin: NodeId,
+        destination: NodeId,
+        data: EdgeData<'a, E>,
+    ) -> Edge<'a, NodeId, EdgeId, E> {
+        Edge {
+            id,
+            origin,
+            destination,
+            data,
+        }
+    }
+
+    pub fn from_ref(
         id: EdgeId,
         origin: NodeId,
         destination: NodeId,
@@ -26,7 +46,21 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
             id,
             origin,
             destination,
-            data,
+            data: EdgeData::Ref(data),
+        }
+    }
+
+    pub fn from_value(
+        id: EdgeId,
+        origin: NodeId,
+        destination: NodeId,
+        data: E,
+    ) -> Edge<'a, NodeId, EdgeId, E> {
+        Edge {
+            id,
+            origin,
+            destination,
+            data: EdgeData::Value(data),
         }
     }
 
@@ -58,7 +92,14 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Edge<'a, NodeId, EdgeId, E> {
         }
     }
 
-    pub fn data(&self) -> &'a E {
+    pub fn data(&self) -> &E {
+        match &self.data {
+            EdgeData::Ref(r) => r,
+            EdgeData::Value(e) => &e,
+        }
+    }
+
+    pub fn into_data(self) -> EdgeData<'a, E> {
         self.data
     }
 }
@@ -67,7 +108,7 @@ impl<'a, NodeId: Eq + Copy, EdgeId: Eq + Copy, E> Deref for Edge<'a, NodeId, Edg
     type Target = E;
 
     fn deref(&self) -> &Self::Target {
-        self.data
+        self.data()
     }
 }
 

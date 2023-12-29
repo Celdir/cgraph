@@ -516,7 +516,7 @@ where
     let &id = keys
         .get_by_right(&node.id())
         .expect("Inner node id should be mapped to outer node id");
-    Node::new(id, node.data())
+    Node::new(id, node.into_data())
 }
 
 fn map_node_mut<'a, L, R, N>(keys: &'a BiMap<L, R>, node: NodeMut<'a, R, N>) -> NodeMut<'a, L, N>
@@ -545,7 +545,7 @@ where
     let &v = keys
         .get_by_right(&edge.v())
         .expect("Inner node id should be mapped to outer node id");
-    Edge::new(edge.id(), u, v, edge.data())
+    Edge::new(edge.id(), u, v, edge.into_data())
 }
 
 fn map_edge_mut<'a, L, R, EId, E>(

@@ -42,7 +42,7 @@ impl<N> NodeContainer for NodeStableVec<N> {
 
     fn node(&self, id: usize) -> Option<Node<usize, N>> {
         match self.nodes.get(id) {
-            Some(Some(node)) => Some(Node::new(id, node)),
+            Some(Some(node)) => Some(Node::from_ref(id, node)),
             _ => None,
         }
     }
@@ -91,7 +91,7 @@ impl<'a, N> Iterator for NodeIterator<'a, N> {
             let (id, opt) = self.inner.next()?;
             if opt.is_some() {
                 let node = opt.as_ref().unwrap();
-                return Some(Node::new(id, node));
+                return Some(Node::from_ref(id, node));
             }
         }
     }

@@ -51,7 +51,7 @@ where
 
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         match self.edges.get(id) {
-            Some(Some(edge)) => Some(Edge::new(id, edge.u, edge.v, &edge.e)),
+            Some(Some(edge)) => Some(Edge::from_ref(id, edge.u, edge.v, &edge.e)),
             _ => None,
         }
     }
@@ -114,7 +114,7 @@ where
             let (id, opt) = self.inner.next()?;
             if opt.is_some() {
                 let edge = opt.as_ref().unwrap();
-                return Some(Edge::new(id, edge.u, edge.v, &edge.e));
+                return Some(Edge::from_ref(id, edge.u, edge.v, &edge.e));
             }
         }
     }

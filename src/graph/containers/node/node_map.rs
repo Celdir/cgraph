@@ -44,7 +44,7 @@ where
     }
 
     fn node(&self, id: Id) -> Option<Node<Id, N>> {
-        self.nodes.get(&id).map(|n| Node::new(id, n))
+        self.nodes.get(&id).map(|n| Node::from_ref(id, n))
     }
 
     fn node_mut(&mut self, id: Id) -> Option<NodeMut<Id, N>> {
@@ -84,7 +84,7 @@ impl<'a, Id: Copy + Eq + Hash + Debug, N: 'a> Iterator for NodeIterator<'a, Id, 
     type Item = Node<'a, Id, N>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(id, n)| Node::new(*id, n))
+        self.inner.next().map(|(id, n)| Node::from_ref(*id, n))
     }
 }
 
