@@ -1,16 +1,8 @@
-use std::{
-    collections::HashMap,
-    marker::PhantomData,
-    ops::{Add, Range},
-};
+use std::ops::{Add, Range};
 
 use itertools::{Itertools, Product};
 
-use super::{
-    edge::Edge,
-    node::Node,
-    traits::{DirectedGraph, Graph, UndirectedGraph},
-};
+use super::{edge::Edge, node::Node, traits::Graph};
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 enum Direction {
