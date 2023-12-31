@@ -2,10 +2,9 @@ use std::{
     fmt::Debug,
     hash::Hash,
     marker::PhantomData,
-    ops::{Add, Range},
 };
 
-use itertools::{Itertools, Product};
+use itertools::{Itertools};
 
 use super::{edge::Edge, node::Node, traits::Graph};
 

@@ -1,13 +1,12 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    marker::PhantomData,
     ops::{Add, Range},
 };
 
 use itertools::{Itertools, Product};
 
-use super::{edge::Edge, node::Node, state::StateGraph, traits::Graph};
+use super::{state::StateGraph};
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Direction {
