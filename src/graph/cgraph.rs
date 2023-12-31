@@ -9,8 +9,8 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
-    DirectedGraph, DirectedGraphMut, Graph, GraphMut, KeyedGraph, OrdinalGraph, RawGraph,
-    UndirectedGraph, WithCapacity,
+    DirectedGraph, DirectedGraphMut, Graph, GraphIter, GraphMut, KeyedGraph, OrdinalGraph,
+    RawGraph, UndirectedGraph, WithCapacity,
 };
 use std::default::Default;
 
@@ -31,16 +31,8 @@ where
     type E = EC::E;
     type EId = EC::EId;
 
-    type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
-
-    type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
-
     type AdjIterator<'a> = GAdjIterator<'a, NC, EC, AC> where Self: 'a;
     type AdjIdsIterator<'a> = AC::AdjIterator<'a> where Self: 'a;
-
-    fn len(&self) -> (usize, usize) {
-        (self.nodes.len(), self.edges.len())
-    }
 
     fn contains_node(&self, id: Self::NId) -> bool {
         self.nodes.contains_node(id)
@@ -67,14 +59,6 @@ where
         self.edges.edge(edge_id)
     }
 
-    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
-        self.nodes.nodes()
-    }
-
-    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
-        self.edges.edges()
-    }
-
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         Some(GAdjIterator {
             graph: &self,
@@ -84,6 +68,28 @@ where
 
     fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
         Some(self.adj.adj(u)?)
+    }
+}
+
+impl<NC, EC, AC> GraphIter for CGraph<NC, EC, AC>
+where
+    NC: NodeContainer,
+    EC: EdgeContainer<NId = NC::NId>,
+    AC: AdjContainer<NId = NC::NId, EId = EC::EId>,
+{
+    type NodeIterator<'a> = NC::NodeIterator<'a> where Self: 'a;
+    type EdgeIterator<'a> = EC::EdgeIterator<'a> where Self: 'a;
+
+    fn len(&self) -> (usize, usize) {
+        (self.nodes.len(), self.edges.len())
+    }
+
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
+        self.nodes.nodes()
+    }
+
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
+        self.edges.edges()
     }
 }
 
@@ -443,7 +449,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::traits::{DirectedGraph, Graph, GraphMut, KeyedGraph, OrdinalGraph};
+    use crate::graph::traits::{
+        DirectedGraph, Graph, GraphIter, GraphMut, KeyedGraph, OrdinalGraph,
+    };
     use crate::graph::types::{
         DiFlatGraph, DiListGraph, DiMapGraph, UnFlatGraph, UnListGraph, UnMapGraph,
     };

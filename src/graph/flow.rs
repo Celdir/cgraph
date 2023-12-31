@@ -5,7 +5,7 @@ use crate::graph::containers::node::traits::NodeContainer;
 use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::{FlowError, GraphError};
 use crate::graph::node::Node;
-use crate::graph::traits::{Graph, GraphMut};
+use crate::graph::traits::{Graph, GraphIter, GraphMut};
 use std::cmp::Ord;
 use std::fmt::Debug;
 use std::ops::{Add, Neg, Sub};
@@ -231,7 +231,7 @@ where
 
 pub struct ModuloEdgeIterator<'a, G>
 where
-    G: 'a + GraphMut<EId = usize>,
+    G: 'a + GraphIter + GraphMut<EId = usize>,
 {
     inner: G::EdgeIterator<'a>,
     modulus: usize,
@@ -240,7 +240,7 @@ where
 
 impl<'a, G> Iterator for ModuloEdgeIterator<'a, G>
 where
-    G: GraphMut<EId = usize>,
+    G: GraphIter + GraphMut<EId = usize>,
 {
     type Item = Edge<'a, G::NId, G::EId, G::E>;
 

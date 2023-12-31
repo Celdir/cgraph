@@ -1,13 +1,13 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
-use crate::graph::traits::UndirectedGraph;
+use crate::graph::traits::{UndirectedGraph, GraphIter};
 use crate::iter::dfs::dfs;
 use std::cmp::min;
 use std::collections::HashMap;
 
 pub fn bridges<'a, G>(graph: &'a G) -> Vec<Edge<'a, G::NId, G::EId, G::E>>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
 {
     let dp = dp(graph);
     graph
@@ -24,7 +24,7 @@ where
 
 pub fn articulation_points<'a, G>(graph: &'a G) -> Vec<Node<'a, G::NId, G::N>>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
 {
     let dp = dp(graph);
     graph
@@ -48,7 +48,7 @@ where
 
 fn dp<'a, G>(graph: &'a G) -> DP<G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
 {
     let mut order = HashMap::new();
     let mut low = HashMap::new();
@@ -90,7 +90,7 @@ where
 
 struct DP<G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
 {
     order: HashMap<G::NId, usize>,
     low: HashMap<G::NId, usize>,

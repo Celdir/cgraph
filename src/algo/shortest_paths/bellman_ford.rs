@@ -1,6 +1,6 @@
 use crate::algo::errors::AlgoError;
 use crate::graph::edge::Edge;
-use crate::graph::traits::Graph;
+use crate::graph::traits::{Graph, GraphIter};
 use crate::iter::traits::{Tree, WeightedPathTree};
 use std::cmp::Ord;
 
@@ -15,7 +15,7 @@ pub fn bellman_ford<'a, G>(
     start: G::NId,
 ) -> Result<(WeightedPathTree<'a, G, G::E>, Option<Cycle<'a, G>>), AlgoError>
 where
-    G: Graph,
+    G: Graph + GraphIter,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     let mut tree = WeightedPathTree::new(graph);

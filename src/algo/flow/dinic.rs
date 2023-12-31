@@ -1,5 +1,6 @@
 use crate::algo::errors::AlgoError;
 use crate::graph::flow::FlowGraph;
+use crate::graph::traits::GraphIter;
 use crate::iter::bfs::bfs_where;
 use std::cmp::min;
 use std::collections::HashMap;
@@ -8,7 +9,7 @@ use std::vec::IntoIter;
 
 pub fn dinic<'a, G>(graph: &'a mut G, source: G::NId, sink: G::NId) -> Result<G::FlowVal, AlgoError>
 where
-    G: FlowGraph,
+    G: FlowGraph + GraphIter,
 {
     // TODO: maybe just change this to "node not found" error with custom error message
     if !graph.contains_node(source) {
@@ -28,7 +29,7 @@ where
 
 fn blocking_flow<'a, G>(graph: &'a mut G, source: G::NId, sink: G::NId) -> Option<G::FlowVal>
 where
-    G: FlowGraph,
+    G: FlowGraph + GraphIter,
 {
     let levels = levels(graph, source, sink)?;
 
@@ -113,7 +114,7 @@ where
 // adj_ids iterators without graph's lifetime bound
 fn adj_ids<'a, G>(graph: &'a G) -> HashMap<G::NId, Peekable<IntoIter<(G::EId, G::NId)>>>
 where
-    G: FlowGraph,
+    G: FlowGraph + GraphIter,
 {
     let mut adj = HashMap::new();
     for node in graph.nodes() {

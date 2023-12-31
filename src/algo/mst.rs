@@ -1,5 +1,5 @@
 use crate::graph::edge::Edge;
-use crate::graph::traits::UndirectedGraph;
+use crate::graph::traits::{UndirectedGraph, GraphIter};
 use crate::iter::pfs::{pfs, PriorityType};
 use crate::iter::traits::{Path, PathTree, Tree};
 
@@ -13,7 +13,7 @@ use std::ops::Add;
 // (technically minimum spanning forest as we run Prim's for each connected component)
 pub fn mst<'a, G>(graph: &'a G) -> MST<'a, G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     let mut tree = PathTree::new(graph);
@@ -47,7 +47,7 @@ where
 
 pub struct MST<'a, G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     tree: PathTree<'a, G>,
@@ -57,7 +57,7 @@ where
 
 impl<'a, G> Tree<'a, G> for MST<'a, G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     fn parent_edge(&self, id: G::NId) -> Option<Edge<'a, G::NId, G::EId, G::E>> {
@@ -70,7 +70,7 @@ where
 
 impl<'a, G> MST<'a, G>
 where
-    G: UndirectedGraph,
+    G: UndirectedGraph + GraphIter,
     G::E: Add<Output = G::E> + Ord + Default + Clone,
 {
     pub fn weight(&self) -> G::E {

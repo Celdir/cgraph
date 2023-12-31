@@ -1,9 +1,9 @@
-use crate::graph::traits::UndirectedGraph;
+use crate::graph::traits::{UndirectedGraph, GraphIter};
 use crate::iter::bfs::bfs;
 use std::collections::HashMap;
 
 // Returns map of node ids to component id, where component ids count up from 0
-pub fn connected_components<G: UndirectedGraph>(graph: &G) -> HashMap<G::NId, usize> {
+pub fn connected_components<G: UndirectedGraph + GraphIter>(graph: &G) -> HashMap<G::NId, usize> {
     let mut component_id = 0;
     let mut component = HashMap::new();
 

@@ -2,8 +2,8 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::{
-    DirectedGraph, DirectedGraphMut, Graph, GraphMut, KeyedGraph, OrdinalGraph, UndirectedGraph,
-    WithCapacity,
+    DirectedGraph, DirectedGraphMut, Graph, GraphIter, GraphMut, KeyedGraph, OrdinalGraph,
+    UndirectedGraph, WithCapacity,
 };
 
 use std::default::Default;
@@ -31,16 +31,8 @@ where
     type E = G::E;
     type EId = G::EId;
 
-    type NodeIterator<'a> = NodeIterator<'a, G, Id> where Self: 'a;
-
-    type EdgeIterator<'a> = EdgeIterator<'a, G, Id> where Self: 'a;
-
     type AdjIterator<'a> = AdjIterator<'a, G, Id> where Self: 'a;
     type AdjIdsIterator<'a> = AdjIdsIterator<'a, G, Id> where Self: 'a;
-
-    fn len(&self) -> (usize, usize) {
-        self.graph.len()
-    }
 
     fn contains_node(&self, id: Self::NId) -> bool {
         self.keys.contains_left(&id)
@@ -82,20 +74,6 @@ where
         }
     }
 
-    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
-        NodeIterator {
-            keys: &self.keys,
-            inner: self.graph.nodes(),
-        }
-    }
-
-    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
-        EdgeIterator {
-            keys: &self.keys,
-            inner: self.graph.edges(),
-        }
-    }
-
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
         let &key = self.keys.get_by_left(&u)?;
@@ -111,6 +89,33 @@ where
             keys: &self.keys,
             inner: self.graph.adj_ids(key)?,
         })
+    }
+}
+
+impl<G, Id> GraphIter for Keyed<G, Id>
+where
+    G: GraphIter + OrdinalGraph,
+    Id: Eq + Hash + Copy + Debug,
+{
+    type NodeIterator<'a> = NodeIterator<'a, G, Id> where Self: 'a;
+    type EdgeIterator<'a> = EdgeIterator<'a, G, Id> where Self: 'a;
+
+    fn len(&self) -> (usize, usize) {
+        self.graph.len()
+    }
+
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
+        NodeIterator {
+            keys: &self.keys,
+            inner: self.graph.nodes(),
+        }
+    }
+
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
+        EdgeIterator {
+            keys: &self.keys,
+            inner: self.graph.edges(),
+        }
     }
 }
 
@@ -355,7 +360,7 @@ where
 
 pub struct NodeIterator<'a, G, Id>
 where
-    G: 'a + Graph,
+    G: 'a + GraphIter,
     Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
@@ -364,7 +369,7 @@ where
 
 impl<'a, G, Id> Iterator for NodeIterator<'a, G, Id>
 where
-    G: OrdinalGraph,
+    G: GraphIter + OrdinalGraph,
     Id: Eq + Hash + Copy + Debug,
 {
     type Item = Node<'a, Id, G::N>;
@@ -397,7 +402,7 @@ where
 
 pub struct EdgeIterator<'a, G, Id>
 where
-    G: 'a + Graph,
+    G: 'a + GraphIter,
     Id: Eq + Hash + Copy + Debug,
 {
     keys: &'a BiMap<Id, G::NId>,
@@ -406,7 +411,7 @@ where
 
 impl<'a, G, Id> Iterator for EdgeIterator<'a, G, Id>
 where
-    G: OrdinalGraph,
+    G: GraphIter + OrdinalGraph,
     Id: Eq + Hash + Copy + Debug,
 {
     type Item = Edge<'a, Id, G::EId, G::E>;
@@ -593,7 +598,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::graph::keyed::Keyed;
-    use crate::graph::traits::{DirectedGraph, Graph, GraphMut, KeyedGraph};
+    use crate::graph::traits::{DirectedGraph, Graph, GraphIter, GraphMut, KeyedGraph};
     use crate::graph::types::{DiFlatGraph, UnFlatGraph};
 
     #[test]

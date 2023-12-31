@@ -11,14 +11,6 @@ pub trait Graph {
     type E;
     type EId: Eq + Hash + Copy + Debug;
 
-    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
-    where
-        Self: 'a;
-
-    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
-    where
-        Self: 'a;
-
     type AdjIterator<'a>: Iterator<
         Item = (
             Edge<'a, Self::NId, Self::EId, Self::E>,
@@ -31,8 +23,6 @@ pub trait Graph {
     where
         Self: 'a;
 
-    fn len(&self) -> (usize, usize);
-
     fn contains_node(&self, id: Self::NId) -> bool;
     fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>>;
     fn degree(&self, u: Self::NId) -> usize;
@@ -41,13 +31,23 @@ pub trait Graph {
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>>;
 
-    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
-
-    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
-
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>>;
     fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>>;
+}
+
+pub trait GraphIter: Graph {
+    type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>
+    where
+        Self: 'a;
+    type EdgeIterator<'a>: Iterator<Item = Edge<'a, Self::NId, Self::EId, Self::E>>
+    where
+        Self: 'a;
+
+    fn len(&self) -> (usize, usize);
+
+    fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
+    fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;
 }
 
 pub trait GraphMut: Graph {

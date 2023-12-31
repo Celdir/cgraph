@@ -1,6 +1,7 @@
 # CGraph - composable graph
 
 TODO 
+ - Refactor Grid2D to accept any State and transition function, not just Position
  - Add a lazy-generated graph where NId is a State and nodes, edges, and adj are lazily generated based on the state.
  - Make `FlatAdjList` lazy-updating where it only reindexes on the first read after edges have been inserted.
  - Optimizations:

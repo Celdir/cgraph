@@ -1,10 +1,10 @@
-use crate::algo::errors::AlgoError;
+use crate::{algo::errors::AlgoError, graph::traits::GraphIter};
 use crate::graph::node::Node;
 use crate::graph::traits::DirectedGraph;
 use std::collections::{HashMap, VecDeque};
 
 // assumes the graph has an edge from A to B if B depends on A
-pub fn topological_sort<'a, G: DirectedGraph>(
+pub fn topological_sort<'a, G: DirectedGraph + GraphIter>(
     graph: &'a G,
 ) -> Result<Vec<Node<'a, G::NId, G::N>>, AlgoError> {
     let mut in_degree: HashMap<G::NId, usize> = HashMap::new();
