@@ -6,7 +6,7 @@ use std::{
 
 use itertools::{Itertools, Product};
 
-use super::{state::StateGraph};
+use super::state::StateGraph;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Direction {
@@ -178,7 +178,7 @@ impl GridBounds {
 mod tests {
     use crate::iter::bfs::bfs;
 
-    use super::{GridBounds, Grid, Position};
+    use super::{Grid, GridBounds, Position};
 
     #[test]
     fn four_connected_bfs() {

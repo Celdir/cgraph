@@ -1,10 +1,6 @@
-use std::{
-    fmt::Debug,
-    hash::Hash,
-    marker::PhantomData,
-};
+use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
-use itertools::{Itertools};
+use itertools::Itertools;
 
 use super::{edge::Edge, node::Node, traits::Graph};
 
