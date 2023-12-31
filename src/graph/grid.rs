@@ -20,6 +20,21 @@ pub enum Direction {
     DownRight,
 }
 
+impl Direction {
+    pub fn opposite(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+            Direction::UpLeft => Direction::DownRight,
+            Direction::UpRight => Direction::DownLeft,
+            Direction::DownLeft => Direction::UpRight,
+            Direction::DownRight => Direction::UpLeft,
+        }
+    }
+}
+
 pub struct Grid {}
 
 impl Grid {
