@@ -8,7 +8,7 @@ pub struct StateGraph<State, N, E, NV, EV, T, F>
 where
     State: Eq + Hash + Copy + Debug,
     NV: Fn(State) -> N,
-    EV: Fn((State, State)) -> E,
+    EV: Fn(State, State) -> E,
     T: Fn(State) -> Vec<State>,
     F: Fn(State) -> bool,
 {
@@ -23,7 +23,7 @@ impl<State, N, E, NV, EV, T, F> StateGraph<State, N, E, NV, EV, T, F>
 where
     State: Eq + Hash + Copy + Debug,
     NV: Fn(State) -> N,
-    EV: Fn((State, State)) -> E,
+    EV: Fn(State, State) -> E,
     T: Fn(State) -> Vec<State>,
     F: Fn(State) -> bool,
 {
@@ -42,7 +42,7 @@ impl<State, N, E, NV, EV, T, F> Graph for StateGraph<State, N, E, NV, EV, T, F>
 where
     State: Eq + Hash + Copy + Debug,
     NV: Fn(State) -> N,
-    EV: Fn((State, State)) -> E,
+    EV: Fn(State, State) -> E,
     T: Fn(State) -> Vec<State>,
     F: Fn(State) -> bool,
 {
@@ -86,7 +86,7 @@ where
         if !self.contains_edge(id.0, id.1) {
             return None;
         }
-        let val = (self.edge_val)(id);
+        let val = (self.edge_val)(id.0, id.1);
         Some(Edge::from_value(id, id.0, id.1, val))
     }
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {

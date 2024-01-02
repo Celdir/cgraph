@@ -47,7 +47,7 @@ impl Grid {
     where
         State: Eq + Hash + Copy + Debug + Add<Direction, Output = State>,
         NV: Fn(State) -> N,
-        EV: Fn((State, State)) -> E,
+        EV: Fn(State, State) -> E,
         NF: Fn(State) -> bool,
         EF: Fn(State, State) -> bool,
     {
@@ -82,7 +82,7 @@ impl Grid {
     where
         State: Eq + Hash + Copy + Debug + Add<Direction, Output = State>,
         NV: Fn(State) -> N,
-        EV: Fn((State, State)) -> E,
+        EV: Fn(State, State) -> E,
         NF: Fn(State) -> bool,
         EF: Fn(State, State) -> bool,
     {
@@ -137,6 +137,12 @@ impl Add<Direction> for Position {
 impl From<(isize, isize)> for Position {
     fn from(value: (isize, isize)) -> Self {
         Position(value.0, value.1)
+    }
+}
+
+impl From<Position> for (isize, isize) {
+    fn from(value: Position) -> Self {
+        (value.0, value.1)
     }
 }
 
@@ -198,7 +204,7 @@ mod tests {
     #[test]
     fn four_connected_bfs() {
         let bounds = GridBounds::new(-1..2, -1..2);
-        let g = Grid::four_connected(|_| (), |_| 1, |pos| bounds.check(pos), |_, _| true);
+        let g = Grid::four_connected(|_| (), |_, _| 1, |pos| bounds.check(pos), |_, _| true);
         let visited: Vec<_> = bfs(&g, Position(0, 0)).map(|(_, node)| node.id()).collect();
         assert_eq!(
             visited,
