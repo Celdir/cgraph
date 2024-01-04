@@ -38,8 +38,8 @@ where
         },
         PriorityType::Min,
         move |acc: Weight<G::E>, edge, node| {
-            let distance = acc.distance + edge.data().clone();
-            let priority = acc.priority + edge.data().clone() + heuristic(node);
+            let distance = acc.distance.clone() + edge.data().clone();
+            let priority = acc.distance + edge.data().clone() + heuristic(node);
             Weight { distance, priority }
         },
     ))
