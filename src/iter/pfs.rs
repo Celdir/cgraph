@@ -52,7 +52,6 @@ where
     )
 }
 
-// TODO: make pq hold PriorityType<P> and let user pass in Max or Min for priority ordering
 #[derive(Eq, PartialEq, Clone, Copy)]
 pub enum PriorityType {
     Max,
@@ -60,17 +59,16 @@ pub enum PriorityType {
 }
 
 #[derive(Eq, PartialEq, Clone)]
-struct Priority<P> {
-    value: P,
-    ptype: PriorityType,
+enum Priority<P> {
+    Max(P),
+    Min(P),
 }
 
 impl<P: Ord> Ord for Priority<P> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let ordering = self.value.cmp(&other.value);
-        match self.ptype {
-            PriorityType::Max => ordering,
-            PriorityType::Min => ordering.reverse(),
+        match self {
+            Priority::Max(val) => val.cmp(other.val()),
+            Priority::Min(val) => val.cmp(other.val()).reverse(),
         }
     }
 }
@@ -83,7 +81,24 @@ impl<P: Ord> PartialOrd for Priority<P> {
 
 impl<P> Priority<P> {
     fn new(value: P, ptype: PriorityType) -> Self {
-        Self { value, ptype }
+        match ptype {
+            PriorityType::Max => Priority::Max(value),
+            PriorityType::Min => Priority::Min(value),
+        }
+    }
+
+    fn val(&self) -> &P {
+        match &self {
+            Priority::Max(val) => val,
+            Priority::Min(val) => val,
+        }
+    }
+
+    fn into_val(self) -> P {
+        match self {
+            Priority::Max(val) => val,
+            Priority::Min(val) => val,
+        }
     }
 }
 
@@ -121,7 +136,7 @@ where
         if !self.tree.contains_node(node_id) {
             self.tree.insert_parent(node_id, None);
         }
-        self.priority.insert(node_id, priority.value.clone());
+        self.priority.insert(node_id, priority.val().clone());
 
         for (edge, node) in self.graph.adj(node_id)? {
             if (self.condition)(&edge, &node) {
@@ -129,14 +144,14 @@ where
 
                 if !self.priority.contains_key(&next_id) {
                     let next_priority = Priority::new(
-                        (self.accumulator)(priority.value.clone(), &edge, &node),
+                        (self.accumulator)(priority.val().clone(), &edge, &node),
                         self.priority_type,
                     );
                     let old_priority = self.pq.push_increase(next_id, next_priority.clone());
 
                     match old_priority {
                         // update parent if priority is increased
-                        Some(old_cost) if old_cost.value == next_priority.value => {}
+                        Some(old_cost) if old_cost.val() == next_priority.val() => {}
                         _ => {
                             self.tree.insert_parent(next_id, Some(edge.id()));
                         }
@@ -147,7 +162,7 @@ where
 
         let node = self.graph.node(node_id).unwrap();
 
-        Some((self.parent_edge(node_id), node, priority.value))
+        Some((self.parent_edge(node_id), node, priority.into_val()))
     }
 }
 

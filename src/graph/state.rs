@@ -94,11 +94,14 @@ where
     }
 
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
+        if !self.contains_node(u) {
+            return None;
+        }
         Some(
-            self.adj_ids(u)?
-                .map(|(eid, nid)| (self.edge(eid), self.node(nid)))
-                .filter(|(edge, node)| edge.is_some() && node.is_some())
-                .map(|(e_opt, n_opt)| (e_opt.unwrap(), n_opt.unwrap()))
+            (self.transition)(u)
+                .into_iter()
+                .filter(|v| (self.filter)(*v))
+                .filter_map(|v| Some((self.edge((u, v))?, self.node(v)?)))
                 .collect_vec()
                 .into_iter(),
         )
