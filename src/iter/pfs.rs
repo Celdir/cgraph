@@ -2,7 +2,7 @@ use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Path, PathTree, Traversal, Tree, WeightedPathTree};
-use priority_queue::PriorityQueue;
+use dary_heap::DaryHeap;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
@@ -64,6 +64,25 @@ enum Priority<P> {
     Min(P),
 }
 
+#[derive(Eq, PartialEq, Clone)]
+struct PQItem<NId, EId, P> {
+    priority: Priority<P>,
+    node: NId,
+    edge: Option<EId>,
+}
+
+impl<NId: Eq, EId: Eq, P: Ord> Ord for PQItem<NId, EId, P> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+
+impl<NId: Eq, EId: Eq, P: Ord> PartialOrd for PQItem<NId, EId, P> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl<P: Ord> Ord for Priority<P> {
     fn cmp(&self, other: &Self) -> Ordering {
         match self {
@@ -110,7 +129,7 @@ where
     F: Fn(&Edge<'a, G::NId, G::EId, G::E>, &Node<'a, G::NId, G::N>) -> bool,
 {
     graph: &'a G,
-    pq: PriorityQueue<G::NId, Priority<P>>,
+    pq: DaryHeap<PQItem<G::NId, G::EId, P>, 4>,
     tree: PathTree<'a, G>,
     priority: HashMap<G::NId, P>,
     accumulator: A,
@@ -132,37 +151,34 @@ where
     );
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (node_id, priority) = self.pq.pop()?;
-        if !self.tree.contains_node(node_id) {
-            self.tree.insert_parent(node_id, None);
+        let item = self.pq.pop()?;
+        if self.priority.contains_key(&item.node) {
+            return self.next();
         }
-        self.priority.insert(node_id, priority.val().clone());
+        self.priority.insert(item.node, item.priority.val().clone());
+        self.tree.insert_parent(item.node, item.edge);
 
-        for (edge, node) in self.graph.adj(node_id)? {
+        for (edge, node) in self.graph.adj(item.node)? {
             if (self.condition)(&edge, &node) {
                 let next_id = node.id();
 
                 if !self.priority.contains_key(&next_id) {
                     let next_priority = Priority::new(
-                        (self.accumulator)(priority.val().clone(), &edge, &node),
+                        (self.accumulator)(item.priority.val().clone(), &edge, &node),
                         self.priority_type,
                     );
-                    let old_priority = self.pq.push_increase(next_id, next_priority.clone());
-
-                    match old_priority {
-                        // update parent if priority is increased
-                        Some(old_cost) if old_cost.val() == next_priority.val() => {}
-                        _ => {
-                            self.tree.insert_parent(next_id, Some(edge.id()));
-                        }
-                    }
+                    self.pq.push(PQItem {
+                        node: next_id,
+                        edge: Some(edge.id()),
+                        priority: next_priority,
+                    });
                 }
             }
         }
 
-        let node = self.graph.node(node_id).unwrap();
+        let node = self.graph.node(item.node).unwrap();
 
-        Some((self.parent_edge(node_id), node, priority.into_val()))
+        Some((self.parent_edge(item.node), node, item.priority.into_val()))
     }
 }
 
@@ -202,7 +218,7 @@ where
     }
 
     fn current_node(&self) -> Option<Node<'a, G::NId, G::N>> {
-        self.graph.node(*self.pq.peek()?.0)
+        self.graph.node(self.pq.peek()?.node)
     }
 
     fn find_path_to(&mut self, target: G::NId) -> Option<Path<'a, G>> {
@@ -230,7 +246,11 @@ where
     ) -> Self {
         Pfs {
             graph,
-            pq: PriorityQueue::from(vec![(start, Priority::new(start_priority, priority_type))]),
+            pq: DaryHeap::from([PQItem {
+                node: start,
+                edge: None,
+                priority: Priority::new(start_priority, priority_type),
+            }]),
             tree: PathTree::new(graph),
             priority: HashMap::new(),
             accumulator: accumulator,
