@@ -1,7 +1,8 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
-use std::collections::HashMap;
+
+use ahash::AHashMap;
 
 pub trait Tree<'a, G>
 where
@@ -80,7 +81,7 @@ where
     G: 'a + Graph,
 {
     graph: &'a G,
-    parent: HashMap<G::NId, Option<G::EId>>,
+    parent: AHashMap<G::NId, Option<G::EId>>,
 }
 
 impl<'a, G> Tree<'a, G> for PathTree<'a, G>
@@ -120,7 +121,7 @@ where
     pub fn new(graph: &'a G) -> PathTree<'a, G> {
         PathTree {
             graph,
-            parent: HashMap::new(),
+            parent: AHashMap::new(),
         }
     }
 
@@ -138,7 +139,7 @@ where
     G: 'a + Graph,
 {
     tree: PathTree<'a, G>,
-    weight: HashMap<G::NId, W>,
+    weight: AHashMap<G::NId, W>,
 }
 
 impl<'a, G, W> Tree<'a, G> for WeightedPathTree<'a, G, W>
@@ -161,7 +162,7 @@ where
     pub fn new(graph: &'a G) -> WeightedPathTree<'a, G, W> {
         WeightedPathTree {
             tree: PathTree::new(graph),
-            weight: HashMap::new(),
+            weight: AHashMap::new(),
         }
     }
 

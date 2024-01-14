@@ -1,8 +1,9 @@
 use crate::graph::containers::adj::traits::{AdjContainer, KeyedAdjContainer, RawAdjContainer};
 use crate::graph::errors::GraphError;
 use crate::graph::traits::WithCapacity;
+
+use ahash::AHashMap;
 use std::collections::hash_map::Iter;
-use std::collections::HashMap;
 use std::default::Default;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -10,7 +11,7 @@ use std::iter::Iterator;
 
 #[derive(Default)]
 pub struct AdjMap<NId, EId> {
-    adj: HashMap<NId, HashMap<NId, EId>>,
+    adj: AHashMap<NId, AHashMap<NId, EId>>,
 }
 
 impl<NId, EId> AdjContainer for AdjMap<NId, EId>
@@ -38,7 +39,7 @@ where
     }
 
     fn register_node(&mut self, u: Self::NId) {
-        self.adj.insert(u, HashMap::new());
+        self.adj.insert(u, AHashMap::new());
     }
 
     fn unregister_node(&mut self, u: Self::NId) {
@@ -86,7 +87,7 @@ where
 impl<NId, EId> WithCapacity for AdjMap<NId, EId> {
     fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
         Self {
-            adj: HashMap::with_capacity(node_capacity),
+            adj: AHashMap::with_capacity(node_capacity),
         }
     }
 }

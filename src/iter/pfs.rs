@@ -2,9 +2,10 @@ use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
 use crate::iter::traits::{Path, PathTree, Traversal, Tree, WeightedPathTree};
+
+use ahash::AHashMap;
 use dary_heap::DaryHeap;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 
 pub fn pfs<'a, G, P, A>(
     graph: &'a G,
@@ -131,7 +132,7 @@ where
     graph: &'a G,
     pq: DaryHeap<PQItem<G::NId, G::EId, P>, 4>,
     tree: PathTree<'a, G>,
-    priority: HashMap<G::NId, P>,
+    priority: AHashMap<G::NId, P>,
     accumulator: A,
     condition: F,
     priority_type: PriorityType,
@@ -252,7 +253,7 @@ where
                 priority: Priority::new(start_priority, priority_type),
             }]),
             tree: PathTree::new(graph),
-            priority: HashMap::new(),
+            priority: AHashMap::new(),
             accumulator: accumulator,
             condition: condition,
             priority_type: priority_type,

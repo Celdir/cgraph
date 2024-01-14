@@ -1,10 +1,9 @@
 use crate::graph::edge::Edge;
-use crate::graph::traits::{UndirectedGraph, GraphIter};
+use crate::graph::traits::{GraphIter, UndirectedGraph};
 use crate::iter::pfs::{pfs, PriorityType};
 use crate::iter::traits::{Path, PathTree, Tree};
 
 use std::cmp::Ord;
-
 
 use std::default::Default;
 use std::ops::Add;
@@ -85,7 +84,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::algo::mst::mst;
-    use crate::graph::traits::{KeyedGraph, WithCapacity, GraphMut};
+    use crate::graph::traits::{GraphMut, KeyedGraph, WithCapacity};
     use crate::graph::types::UnMapGraph;
 
     #[test]

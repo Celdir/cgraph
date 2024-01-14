@@ -1,8 +1,9 @@
 use crate::graph::containers::node::traits::{KeyedNodeContainer, NodeContainer};
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::WithCapacity;
+
+use ahash::AHashMap;
 use std::collections::hash_map::{Iter, IterMut};
-use std::collections::HashMap;
 use std::default::Default;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -10,7 +11,7 @@ use std::iter::Iterator;
 
 #[derive(Default)]
 pub struct NodeMap<Id, N> {
-    nodes: HashMap<Id, N>,
+    nodes: AHashMap<Id, N>,
 }
 
 impl<Id, N> NodeContainer for NodeMap<Id, N>
@@ -71,7 +72,7 @@ where
 impl<Id, N> WithCapacity for NodeMap<Id, N> {
     fn with_capacity(node_capacity: usize, _edge_capacity: usize) -> Self {
         Self {
-            nodes: HashMap::with_capacity(node_capacity),
+            nodes: AHashMap::with_capacity(node_capacity),
         }
     }
 }

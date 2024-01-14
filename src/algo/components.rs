@@ -1,11 +1,12 @@
-use crate::graph::traits::{UndirectedGraph, GraphIter};
+use crate::graph::traits::{GraphIter, UndirectedGraph};
 use crate::iter::bfs::bfs;
-use std::collections::HashMap;
+
+use ahash::AHashMap;
 
 // Returns map of node ids to component id, where component ids count up from 0
-pub fn connected_components<G: UndirectedGraph + GraphIter>(graph: &G) -> HashMap<G::NId, usize> {
+pub fn connected_components<G: UndirectedGraph + GraphIter>(graph: &G) -> AHashMap<G::NId, usize> {
     let mut component_id = 0;
-    let mut component = HashMap::new();
+    let mut component = AHashMap::new();
 
     for start in graph.nodes() {
         if !component.contains_key(&start.id()) {
@@ -24,7 +25,7 @@ mod tests {
     use crate::algo::components::connected_components;
     use crate::graph::traits::OrdinalGraph;
     use crate::graph::types::UnListGraph;
-    use std::collections::HashMap;
+    use ahash::AHashMap;
 
     #[test]
     fn connected_components_base_case() {
@@ -39,7 +40,7 @@ mod tests {
         );
 
         let expected_components =
-            HashMap::from([(0, 0), (1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2)]);
+            AHashMap::from([(0, 0), (1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2)]);
         let components = connected_components(&graph);
         assert_eq!(components, expected_components);
     }
