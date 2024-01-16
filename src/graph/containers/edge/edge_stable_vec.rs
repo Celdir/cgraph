@@ -80,9 +80,9 @@ where
         let edge = self
             .edges
             .get_mut(id)
-            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?
+            .ok_or_else(|| GraphError::EdgeNotFound(format!("{:?}", id)))?
             .as_mut()
-            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?;
+            .ok_or_else(|| GraphError::EdgeNotFound(format!("{:?}", id)))?;
         mem::swap(&mut edge.u, &mut edge.v);
 
         Ok(())

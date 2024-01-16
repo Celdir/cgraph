@@ -51,7 +51,7 @@ where
         let u_adj = self
             .adj
             .get_mut(u)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
+            .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", u)))?;
         let ids: Vec<_> = u_adj.iter().copied().collect();
         u_adj.clear();
 

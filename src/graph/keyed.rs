@@ -10,7 +10,7 @@ use std::default::Default;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use bimap::BiMap;
+use ahash::AHashMap;
 
 pub struct Keyed<G, Id>
 where
@@ -18,7 +18,8 @@ where
     Id: Eq + Hash + Copy + Debug,
 {
     graph: G,
-    keys: BiMap<Id, G::NId>,
+    keys: AHashMap<Id, G::NId>,
+    reverse_keys: AHashMap<G::NId, Id>,
 }
 
 impl<G, Id> Graph for Keyed<G, Id>
@@ -35,24 +36,24 @@ where
     type AdjIdsIterator<'a> = AdjIdsIterator<'a, G, Id> where Self: 'a;
 
     fn contains_node(&self, id: Self::NId) -> bool {
-        self.keys.contains_left(&id)
+        self.keys.contains_key(&id)
     }
 
     fn node(&self, id: Self::NId) -> Option<Node<Self::NId, Self::N>> {
-        let &key = self.keys.get_by_left(&id)?;
+        let &key = self.keys.get(&id)?;
         let inner_node = self.graph.node(key)?;
-        Some(map_node(&self.keys, inner_node))
+        Some(map_node(&self.reverse_keys, inner_node))
     }
 
     fn degree(&self, u: Self::NId) -> usize {
-        match self.keys.get_by_left(&u) {
+        match self.keys.get(&u) {
             Some(&key) => self.graph.degree(key),
             _ => 0,
         }
     }
 
     fn contains_edge(&self, u: Self::NId, v: Self::NId) -> bool {
-        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
+        let key_pair = (self.keys.get(&u), self.keys.get(&v));
         match key_pair {
             (Some(&u_key), Some(&v_key)) => self.graph.contains_edge(u_key, v_key),
             _ => false,
@@ -61,32 +62,33 @@ where
 
     fn edge(&self, id: Self::EId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
         let inner_edge = self.graph.edge(id)?;
-        Some(map_edge(&self.keys, inner_edge))
+        Some(map_edge(&self.reverse_keys, inner_edge))
     }
 
     fn between(&self, u: Self::NId, v: Self::NId) -> Option<Edge<Self::NId, Self::EId, Self::E>> {
-        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
+        let key_pair = (self.keys.get(&u), self.keys.get(&v));
         match key_pair {
-            (Some(&u_key), Some(&v_key)) => {
-                Some(map_edge(&self.keys, self.graph.between(u_key, v_key)?))
-            }
+            (Some(&u_key), Some(&v_key)) => Some(map_edge(
+                &self.reverse_keys,
+                self.graph.between(u_key, v_key)?,
+            )),
             _ => None,
         }
     }
 
     // Returns out edges for directed graph or all edges for undirected
     fn adj<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.adj(key)?,
         })
     }
 
     fn adj_ids<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIdsIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjIdsIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.adj_ids(key)?,
         })
     }
@@ -106,14 +108,14 @@ where
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a> {
         NodeIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.nodes(),
         }
     }
 
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a> {
         EdgeIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.edges(),
         }
     }
@@ -129,31 +131,32 @@ where
     type AdjMutIterator<'a> = AdjMutIterator<'a, G, Id> where Self: 'a;
 
     fn node_mut(&mut self, id: Self::NId) -> Option<NodeMut<Self::NId, Self::N>> {
-        let &key = self.keys.get_by_left(&id)?;
+        let &key = self.keys.get(&id)?;
         let inner_node_mut = self.graph.node_mut(key)?;
-        Some(map_node_mut(&self.keys, inner_node_mut))
+        Some(map_node_mut(&self.reverse_keys, inner_node_mut))
     }
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError> {
         let &key = self
             .keys
-            .get_by_left(&id)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", id)))?;
-        self.keys.remove_by_left(&id);
+            .get(&id)
+            .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", id)))?;
+        self.keys.remove(&id);
+        self.reverse_keys.remove(&key);
         self.graph.remove_node(key)
     }
 
     fn clear_node(&mut self, id: Self::NId) -> Result<(), GraphError> {
         let &key = self
             .keys
-            .get_by_left(&id)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", id)))?;
+            .get(&id)
+            .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", id)))?;
         self.graph.clear_node(key)
     }
 
     fn edge_mut(&mut self, id: Self::EId) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
         let inner_edge = self.graph.edge_mut(id)?;
-        Some(map_edge_mut(&self.keys, inner_edge))
+        Some(map_edge_mut(&self.reverse_keys, inner_edge))
     }
 
     fn between_mut(
@@ -161,10 +164,10 @@ where
         u: Self::NId,
         v: Self::NId,
     ) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>> {
-        let key_pair = (self.keys.get_by_left(&u), self.keys.get_by_left(&v));
+        let key_pair = (self.keys.get(&u), self.keys.get(&v));
         match key_pair {
             (Some(&u_key), Some(&v_key)) => Some(map_edge_mut(
-                &self.keys,
+                &self.reverse_keys,
                 self.graph.between_mut(u_key, v_key)?,
             )),
             _ => None,
@@ -179,11 +182,11 @@ where
     ) -> Result<Self::EId, GraphError> {
         let (&u_key, &v_key) = (
             self.keys
-                .get_by_left(&u)
-                .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?,
+                .get(&u)
+                .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", u)))?,
             self.keys
-                .get_by_left(&v)
-                .ok_or(GraphError::NodeNotFound(format!("{:?}", v)))?,
+                .get(&v)
+                .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", v)))?,
         );
         self.graph.insert_edge(u_key, v_key, edge)
     }
@@ -194,22 +197,22 @@ where
 
     fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a> {
         NodeMutIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.nodes_mut(),
         }
     }
 
     fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a> {
         EdgeMutIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.edges_mut(),
         }
     }
 
     fn adj_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjMutIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.adj_mut(key)?,
         })
     }
@@ -223,7 +226,8 @@ where
     fn default() -> Self {
         Self {
             graph: G::default(),
-            keys: BiMap::new(),
+            keys: AHashMap::new(),
+            reverse_keys: AHashMap::new(),
         }
     }
 }
@@ -236,7 +240,8 @@ where
     fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
             graph: G::with_capacity(node_capacity, edge_capacity),
-            keys: BiMap::new(),
+            keys: AHashMap::new(),
+            reverse_keys: AHashMap::new(),
         }
     }
 }
@@ -254,6 +259,7 @@ where
 
         let key = self.graph.insert_node(node);
         self.keys.insert(id, key);
+        self.reverse_keys.insert(key, id);
         None
     }
 
@@ -283,15 +289,15 @@ where
     Id: Eq + Hash + Copy + Debug,
 {
     fn out_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.out_edges(key)?,
         })
     }
 
     fn out_degree(&self, u: Self::NId) -> usize {
-        let key_opt = self.keys.get_by_left(&u);
+        let key_opt = self.keys.get(&u);
         match key_opt {
             Some(&key) => self.graph.out_degree(key),
             _ => 0,
@@ -299,15 +305,15 @@ where
     }
 
     fn in_edges<'a>(&'a self, u: Self::NId) -> Option<Self::AdjIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.in_edges(key)?,
         })
     }
 
     fn in_degree(&self, u: Self::NId) -> usize {
-        let key_opt = self.keys.get_by_left(&u);
+        let key_opt = self.keys.get(&u);
         match key_opt {
             Some(&key) => self.graph.in_degree(key),
             _ => 0,
@@ -321,17 +327,17 @@ where
     Id: Eq + Hash + Copy + Debug,
 {
     fn out_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjMutIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.out_edges_mut(key)?,
         })
     }
 
     fn in_edges_mut<'a>(&'a mut self, u: Self::NId) -> Option<Self::AdjMutIterator<'a>> {
-        let &key = self.keys.get_by_left(&u)?;
+        let &key = self.keys.get(&u)?;
         Some(AdjMutIterator {
-            keys: &self.keys,
+            reverse_keys: &self.reverse_keys,
             inner: self.graph.in_edges_mut(key)?,
         })
     }
@@ -363,7 +369,7 @@ where
     G: 'a + GraphIter,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::NodeIterator<'a>,
 }
 
@@ -375,7 +381,9 @@ where
     type Item = Node<'a, Id, G::N>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|node| map_node(&self.keys, node))
+        self.inner
+            .next()
+            .map(|node| map_node(&self.reverse_keys, node))
     }
 }
 
@@ -384,7 +392,7 @@ where
     G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::NodeMutIterator<'a>,
 }
 
@@ -396,7 +404,9 @@ where
     type Item = NodeMut<'a, Id, G::N>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|node| map_node_mut(&self.keys, node))
+        self.inner
+            .next()
+            .map(|node| map_node_mut(&self.reverse_keys, node))
     }
 }
 
@@ -405,7 +415,7 @@ where
     G: 'a + GraphIter,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::EdgeIterator<'a>,
 }
 
@@ -417,7 +427,9 @@ where
     type Item = Edge<'a, Id, G::EId, G::E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|node| map_edge(&self.keys, node))
+        self.inner
+            .next()
+            .map(|node| map_edge(&self.reverse_keys, node))
     }
 }
 
@@ -426,7 +438,7 @@ where
     G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::EdgeMutIterator<'a>,
 }
 
@@ -438,7 +450,9 @@ where
     type Item = EdgeMut<'a, Id, G::EId, G::E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|node| map_edge_mut(&self.keys, node))
+        self.inner
+            .next()
+            .map(|node| map_edge_mut(&self.reverse_keys, node))
     }
 }
 
@@ -447,7 +461,7 @@ where
     G: 'a + Graph,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::AdjIterator<'a>,
 }
 
@@ -459,7 +473,9 @@ where
     type Item = (Edge<'a, Id, G::EId, G::E>, Node<'a, Id, G::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|adj| map_adj(&self.keys, adj))
+        self.inner
+            .next()
+            .map(|adj| map_adj(&self.reverse_keys, adj))
     }
 }
 
@@ -468,7 +484,7 @@ where
     G: 'a + Graph,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::AdjIdsIterator<'a>,
 }
 
@@ -484,8 +500,8 @@ where
             (
                 adj.0,
                 *self
-                    .keys
-                    .get_by_right(&adj.1)
+                    .reverse_keys
+                    .get(&adj.1)
                     .expect("Inner node id should be mapped to outer node id"),
             )
         })
@@ -497,7 +513,7 @@ where
     G: 'a + GraphMut,
     Id: Eq + Hash + Copy + Debug,
 {
-    keys: &'a BiMap<Id, G::NId>,
+    reverse_keys: &'a AHashMap<G::NId, Id>,
     inner: G::AdjMutIterator<'a>,
 }
 
@@ -509,34 +525,39 @@ where
     type Item = (EdgeMut<'a, Id, G::EId, G::E>, NodeMut<'a, Id, G::N>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|adj| map_adj_mut(&self.keys, adj))
+        self.inner
+            .next()
+            .map(|adj| map_adj_mut(&self.reverse_keys, adj))
     }
 }
 
-fn map_node<'a, L, R, N>(keys: &'a BiMap<L, R>, node: Node<'a, R, N>) -> Node<'a, L, N>
+fn map_node<'a, L, R, N>(reverse_keys: &'a AHashMap<R, L>, node: Node<'a, R, N>) -> Node<'a, L, N>
 where
     L: Eq + Hash + Copy + Debug,
     R: Eq + Hash + Copy + Debug,
 {
-    let &id = keys
-        .get_by_right(&node.id())
+    let &id = reverse_keys
+        .get(&node.id())
         .expect("Inner node id should be mapped to outer node id");
     Node::new(id, node.into_data())
 }
 
-fn map_node_mut<'a, L, R, N>(keys: &'a BiMap<L, R>, node: NodeMut<'a, R, N>) -> NodeMut<'a, L, N>
+fn map_node_mut<'a, L, R, N>(
+    reverse_keys: &'a AHashMap<R, L>,
+    node: NodeMut<'a, R, N>,
+) -> NodeMut<'a, L, N>
 where
     L: Eq + Hash + Copy + Debug,
     R: Eq + Hash + Copy + Debug,
 {
-    let &id = keys
-        .get_by_right(&node.id())
+    let &id = reverse_keys
+        .get(&node.id())
         .expect("Inner node id should be mapped to outer node id");
     NodeMut::new(id, node.into_data())
 }
 
 fn map_edge<'a, L, R, EId, E>(
-    keys: &'a BiMap<L, R>,
+    reverse_keys: &'a AHashMap<R, L>,
     edge: Edge<'a, R, EId, E>,
 ) -> Edge<'a, L, EId, E>
 where
@@ -544,17 +565,17 @@ where
     R: Eq + Hash + Copy + Debug,
     EId: 'a + Eq + Copy + Debug,
 {
-    let &u = keys
-        .get_by_right(&edge.u())
+    let &u = reverse_keys
+        .get(&edge.u())
         .expect("Inner node id should be mapped to outer node id");
-    let &v = keys
-        .get_by_right(&edge.v())
+    let &v = reverse_keys
+        .get(&edge.v())
         .expect("Inner node id should be mapped to outer node id");
     Edge::new(edge.id(), u, v, edge.into_data())
 }
 
 fn map_edge_mut<'a, L, R, EId, E>(
-    keys: &'a BiMap<L, R>,
+    reverse_keys: &'a AHashMap<R, L>,
     edge: EdgeMut<'a, R, EId, E>,
 ) -> EdgeMut<'a, L, EId, E>
 where
@@ -562,17 +583,17 @@ where
     R: Eq + Hash + Copy + Debug,
     EId: 'a + Eq + Copy + Debug,
 {
-    let &u = keys
-        .get_by_right(&edge.u())
+    let &u = reverse_keys
+        .get(&edge.u())
         .expect("Inner node id should be mapped to outer node id");
-    let &v = keys
-        .get_by_right(&edge.v())
+    let &v = reverse_keys
+        .get(&edge.v())
         .expect("Inner node id should be mapped to outer node id");
     EdgeMut::new(edge.id(), u, v, edge.into_data())
 }
 
 fn map_adj<'a, L, R, N, EId, E>(
-    keys: &'a BiMap<L, R>,
+    reverse_keys: &'a AHashMap<R, L>,
     adj: (Edge<'a, R, EId, E>, Node<'a, R, N>),
 ) -> (Edge<'a, L, EId, E>, Node<'a, L, N>)
 where
@@ -580,11 +601,11 @@ where
     R: Eq + Hash + Copy + Debug,
     EId: 'a + Eq + Copy + Debug,
 {
-    (map_edge(keys, adj.0), map_node(keys, adj.1))
+    (map_edge(reverse_keys, adj.0), map_node(reverse_keys, adj.1))
 }
 
 fn map_adj_mut<'a, L, R, N, EId, E>(
-    keys: &'a BiMap<L, R>,
+    reverse_keys: &'a AHashMap<R, L>,
     adj: (EdgeMut<'a, R, EId, E>, NodeMut<'a, R, N>),
 ) -> (EdgeMut<'a, L, EId, E>, NodeMut<'a, L, N>)
 where
@@ -592,7 +613,10 @@ where
     R: Eq + Hash + Copy + Debug,
     EId: 'a + Eq + Copy + Debug,
 {
-    (map_edge_mut(keys, adj.0), map_node_mut(keys, adj.1))
+    (
+        map_edge_mut(reverse_keys, adj.0),
+        map_node_mut(reverse_keys, adj.1),
+    )
 }
 
 #[cfg(test)]

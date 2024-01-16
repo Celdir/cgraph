@@ -211,11 +211,11 @@ where
 
     fn increase_flow(&mut self, id: Self::EId, delta: Self::FlowVal) -> Result<(), GraphError> {
         self.edge_mut(id)
-            .ok_or(GraphError::EdgeNotFound(format!("{:?}", id)))?
+            .ok_or_else(|| GraphError::EdgeNotFound(format!("{:?}", id)))?
             .increase_flow(delta)
             .map_err(|flow| FlowError::InsufficientCapacity(format!("{:?}", id), flow))?;
         self.back_edge_mut(id)
-            .ok_or(FlowError::BackEdgeNotFound(format!("{:?}", id)))?
+            .ok_or_else(|| FlowError::BackEdgeNotFound(format!("{:?}", id)))?
             .increase_flow(-delta)
             .expect("back edge must have residual capacity");
 

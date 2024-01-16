@@ -50,7 +50,7 @@ where
         let u_adj = self
             .adj
             .get_mut(&u)
-            .ok_or(GraphError::NodeNotFound(format!("{:?}", u)))?;
+            .ok_or_else(|| GraphError::NodeNotFound(format!("{:?}", u)))?;
         let ids: Vec<_> = u_adj.iter().map(|(&v, &edge_id)| (edge_id, v)).collect();
         u_adj.clear();
 
