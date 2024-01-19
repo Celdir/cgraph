@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+
 use crate::graph::cgraph::CGraph;
 use crate::graph::containers::adj::adj_list::AdjList;
 use crate::graph::containers::adj::adj_map::AdjMap;
@@ -8,6 +11,8 @@ use crate::graph::containers::edge::edge_stable_vec::EdgeStableVec;
 use crate::graph::containers::node::node_map::NodeMap;
 use crate::graph::containers::node::node_stable_vec::NodeStableVec;
 use crate::graph::flow::Flow;
+
+use super::traits::Graph;
 
 pub type DiGraph<NC, EC, AC> = CGraph<NC, EC, Di<AC>>;
 pub type UnGraph<NC, EC, AC> = CGraph<NC, EC, Un<AC>>;
@@ -29,3 +34,5 @@ pub type FlowListGraph<N, V> =
     CGraph<NodeStableVec<N>, EdgeStableVec<usize, Flow<V>>, AdjList<usize>>;
 pub type FlowMapGraph<Id, N, V> =
     CGraph<NodeMap<Id, N>, EdgeStableVec<usize, Flow<V>>, AdjMap<Id, usize>>;
+
+pub type NodeHashMap<G, V> = HashMap<<G as Graph>::NId, V, BuildHasherDefault<<G as Graph>::NodeHasher>>;

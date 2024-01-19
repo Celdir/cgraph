@@ -1,10 +1,11 @@
 use crate::graph::node::{Node, NodeMut};
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::iter::Iterator;
 
 pub trait NodeContainer {
     type NId: Eq + Hash + Copy + Debug;
+    type NodeHasher: Hasher + Default;
     type N;
 
     type NodeIterator<'a>: Iterator<Item = Node<'a, Self::NId, Self::N>>

@@ -1,9 +1,9 @@
 use crate::algo::errors::AlgoError;
 use crate::graph::flow::FlowGraph;
 use crate::graph::traits::GraphIter;
+use crate::graph::types::NodeHashMap;
 use crate::iter::bfs::bfs_where;
 
-use ahash::AHashMap;
 use std::cmp::min;
 use std::iter::Peekable;
 use std::vec::IntoIter;
@@ -55,8 +55,8 @@ where
     I: Iterator<Item = (G::EId, G::NId)>,
 {
     graph: &'a mut G,
-    adj: AHashMap<G::NId, Peekable<I>>,
-    levels: AHashMap<G::NId, usize>,
+    adj: NodeHashMap<G, Peekable<I>>,
+    levels: NodeHashMap<G, usize>,
     sink: G::NId,
 }
 
@@ -88,11 +88,11 @@ where
 }
 
 // calculate levels (distance from source) for nodes in residual graph
-fn levels<'a, G>(graph: &'a mut G, source: G::NId, sink: G::NId) -> Option<AHashMap<G::NId, usize>>
+fn levels<'a, G>(graph: &'a mut G, source: G::NId, sink: G::NId) -> Option<NodeHashMap<G, usize>>
 where
     G: FlowGraph,
 {
-    let mut levels = AHashMap::new();
+    let mut levels = NodeHashMap::<G, usize>::default();
 
     for (edge_opt, node) in bfs_where(graph, source, |edge, _| edge.has_residual()) {
         match edge_opt {
@@ -113,11 +113,11 @@ where
 }
 
 // adj_ids iterators without graph's lifetime bound
-fn adj_ids<'a, G>(graph: &'a G) -> AHashMap<G::NId, Peekable<IntoIter<(G::EId, G::NId)>>>
+fn adj_ids<'a, G>(graph: &'a G) -> NodeHashMap<G, Peekable<IntoIter<(G::EId, G::NId)>>>
 where
     G: FlowGraph + GraphIter,
 {
-    let mut adj = AHashMap::new();
+    let mut adj = NodeHashMap::<G, _>::default();
     for node in graph.nodes() {
         adj.insert(
             node.id(),

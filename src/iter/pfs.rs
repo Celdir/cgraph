@@ -1,9 +1,9 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::Graph;
+use crate::graph::types::NodeHashMap;
 use crate::iter::traits::{Path, PathTree, Traversal, Tree, WeightedPathTree};
 
-use ahash::AHashMap;
 use dary_heap::DaryHeap;
 use std::cmp::Ordering;
 
@@ -132,7 +132,7 @@ where
     graph: &'a G,
     pq: DaryHeap<PQItem<G::NId, G::EId, P>, 4>,
     tree: PathTree<'a, G>,
-    priority: AHashMap<G::NId, P>,
+    priority: NodeHashMap<G, P>,
     accumulator: A,
     condition: F,
     priority_type: PriorityType,
@@ -253,7 +253,7 @@ where
                 priority: Priority::new(start_priority, priority_type),
             }]),
             tree: PathTree::new(graph),
-            priority: AHashMap::new(),
+            priority: NodeHashMap::<G, P>::default(),
             accumulator: accumulator,
             condition: condition,
             priority_type: priority_type,

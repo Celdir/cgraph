@@ -1,9 +1,9 @@
 use crate::graph::edge::Edge;
 use crate::graph::node::Node;
 use crate::graph::traits::{GraphIter, UndirectedGraph};
+use crate::graph::types::NodeHashMap;
 use crate::iter::dfs::dfs;
 
-use ahash::AHashMap;
 use std::cmp::min;
 
 pub fn bridges<'a, G>(graph: &'a G) -> Vec<Edge<'a, G::NId, G::EId, G::E>>
@@ -51,9 +51,9 @@ fn dp<'a, G>(graph: &'a G) -> DP<G>
 where
     G: UndirectedGraph + GraphIter,
 {
-    let mut order = AHashMap::new();
-    let mut low = AHashMap::new();
-    let mut roots = AHashMap::new(); // maps root id to number of children
+    let mut order = NodeHashMap::<G, usize>::default();
+    let mut low = NodeHashMap::<G, usize>::default();
+    let mut roots = NodeHashMap::<G, usize>::default(); // maps root id to number of children
     let mut time = 0;
     for root in graph.nodes() {
         let root_id = root.id();
@@ -93,9 +93,9 @@ struct DP<G>
 where
     G: UndirectedGraph + GraphIter,
 {
-    order: AHashMap<G::NId, usize>,
-    low: AHashMap<G::NId, usize>,
-    roots: AHashMap<G::NId, usize>,
+    order: NodeHashMap<G, usize>,
+    low: NodeHashMap<G, usize>,
+    roots: NodeHashMap<G, usize>,
 }
 
 #[cfg(test)]

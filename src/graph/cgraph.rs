@@ -28,6 +28,7 @@ where
 {
     type N = NC::N;
     type NId = NC::NId;
+    type NodeHasher = NC::NodeHasher;
     type E = EC::E;
     type EId = EC::EId;
 

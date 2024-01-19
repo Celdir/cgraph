@@ -2,7 +2,7 @@ use crate::graph::containers::node::traits::{KeyedNodeContainer, NodeContainer};
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::WithCapacity;
 
-use ahash::AHashMap;
+use ahash::{AHashMap, AHasher};
 use std::collections::hash_map::{Iter, IterMut};
 use std::default::Default;
 use std::fmt::Debug;
@@ -19,6 +19,7 @@ where
     Id: Eq + Hash + Copy + Debug,
 {
     type NId = Id;
+    type NodeHasher = AHasher;
     type N = N;
 
     type NodeIterator<'a> = NodeIterator<'a, Id, N> where Self: 'a;

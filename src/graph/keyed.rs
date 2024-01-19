@@ -10,7 +10,7 @@ use std::default::Default;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use ahash::AHashMap;
+use ahash::{AHashMap, AHasher};
 
 pub struct Keyed<G, Id>
 where
@@ -29,6 +29,7 @@ where
 {
     type N = G::N;
     type NId = Id;
+    type NodeHasher = AHasher;
     type E = G::E;
     type EId = G::EId;
 

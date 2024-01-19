@@ -1,6 +1,8 @@
 use crate::graph::containers::node::traits::{NodeContainer, OrdinalNodeContainer};
 use crate::graph::node::{Node, NodeMut};
 use crate::graph::traits::WithCapacity;
+
+use nohash::NoHashHasher;
 use std::default::Default;
 use std::iter;
 use std::iter::Iterator;
@@ -15,6 +17,7 @@ pub struct NodeStableVec<N> {
 
 impl<N> NodeContainer for NodeStableVec<N> {
     type NId = usize;
+    type NodeHasher = NoHashHasher<usize>;
     type N = N;
 
     type NodeIterator<'a> = NodeIterator<'a, N> where Self: 'a;

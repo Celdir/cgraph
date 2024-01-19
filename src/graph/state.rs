@@ -1,5 +1,6 @@
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
+use ahash::AHasher;
 use itertools::Itertools;
 
 use super::{edge::Edge, node::Node, traits::Graph};
@@ -48,6 +49,7 @@ where
 {
     type NId = State;
     type N = N;
+    type NodeHasher = AHasher;
     type EId = (State, State);
     type E = E;
     type AdjIterator<'a> = std::vec::IntoIter<

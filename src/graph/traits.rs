@@ -3,11 +3,12 @@ use crate::graph::edge::{Edge, EdgeMut};
 use crate::graph::errors::GraphError;
 use crate::graph::node::{Node, NodeMut};
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 pub trait Graph {
     type N;
     type NId: Eq + Hash + Copy + Debug;
+    type NodeHasher: Hasher + Default;
     type E;
     type EId: Eq + Hash + Copy + Debug;
 
@@ -74,7 +75,6 @@ pub trait GraphMut: Graph {
         v: Self::NId,
     ) -> Option<EdgeMut<Self::NId, Self::EId, Self::E>>;
 
-
     fn insert_edge(
         &mut self,
         u: Self::NId,
@@ -85,7 +85,6 @@ pub trait GraphMut: Graph {
 
     fn remove_node(&mut self, id: Self::NId) -> Result<Self::N, GraphError>;
     fn clear_node(&mut self, id: Self::NId) -> Result<(), GraphError>;
-
 
     fn nodes_mut<'a>(&'a mut self) -> Self::NodeMutIterator<'a>;
     fn edges_mut<'a>(&'a mut self) -> Self::EdgeMutIterator<'a>;
