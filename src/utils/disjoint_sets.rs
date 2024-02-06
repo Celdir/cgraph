@@ -155,6 +155,6 @@ where
     }
 
     pub fn weight(&self, id: usize) -> &W {
-        &self.weight[id]
+        &self.weight[self.root(id)]
     }
 }
