@@ -46,6 +46,12 @@ pub trait GraphIter: Graph {
         Self: 'a;
 
     fn len(&self) -> (usize, usize);
+    fn n(&self) -> usize {
+        self.len().0
+    }
+    fn m(&self) -> usize {
+        self.len().1
+    }
 
     fn nodes<'a>(&'a self) -> Self::NodeIterator<'a>;
     fn edges<'a>(&'a self) -> Self::EdgeIterator<'a>;

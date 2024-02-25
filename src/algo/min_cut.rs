@@ -37,7 +37,7 @@ where
     let start = quotient.graph().nodes().next().unwrap().id();
     let start_id = quotient.subset(start);
     let mut heap: DaryHeap<(G::E, usize), 4> = DaryHeap::new();
-    let mut weight = vec![G::E::default(); quotient.graph().len().0];
+    let mut weight = vec![G::E::default(); quotient.graph().n()];
     for edge in quotient.adj(start_id) {
         let other = edge.other(start_id);
         weight[other] = weight[other].clone() + edge.data().clone();
