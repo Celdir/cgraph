@@ -1,6 +1,6 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
-use std::ops::AddAssign;
+use std::ops::Add;
 
 #[derive(Debug, Clone)]
 pub struct DisjointSet {
@@ -95,7 +95,7 @@ pub struct WeightedDisjointSet<W> {
 
 impl<W> Default for WeightedDisjointSet<W>
 where
-    W: Default + Clone + AddAssign,
+    W: Default + Clone + Add<Output = W>,
 {
     #[inline]
     fn default() -> Self {
@@ -105,7 +105,7 @@ where
 
 impl<W> WeightedDisjointSet<W>
 where
-    W: Default + Clone + AddAssign,
+    W: Default + Clone + Add<Output = W>,
 {
     pub fn new() -> Self {
         Self {
@@ -141,10 +141,10 @@ where
         if changed {
             if self.root(a_root) == b_root {
                 let delta = self.weight[a_root].clone();
-                self.weight[b_root] += delta;
+                self.weight[b_root] = self.weight[b_root].clone() + delta;
             } else {
                 let delta = self.weight[b_root].clone();
-                self.weight[a_root] += delta;
+                self.weight[a_root] = self.weight[a_root].clone() + delta;
             }
         }
         changed
@@ -156,5 +156,9 @@ where
 
     pub fn weight(&self, id: usize) -> &W {
         &self.weight[self.root(id)]
+    }
+
+    pub fn set_weight(&mut self, id: usize, w: W) {
+        self.weight[id] = w;
     }
 }

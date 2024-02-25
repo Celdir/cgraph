@@ -6,3 +6,4 @@ pub mod mst;
 pub mod shortest_paths;
 pub mod topological_sort;
 pub mod karger;
+pub mod min_cut;

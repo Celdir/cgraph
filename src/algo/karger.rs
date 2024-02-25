@@ -40,7 +40,7 @@ where
     c2.contract_to(t);
     let r1 = fastmincut(c);
     let r2 = fastmincut(&mut c2);
-    if r1.cut_weight < r2.cut_weight {
+    if r1.cut_weight() < r2.cut_weight() {
         return r1;
     } else {
         return r2;
@@ -56,7 +56,6 @@ where
     ids: Rc<NodeHashMap<G, usize>>,
     ds: DisjointSet,
     components: usize,
-    cut_weight: G::E,
 }
 
 impl<'a, G> Contraction<'a, G>
@@ -71,9 +70,6 @@ where
             ids: ids.into(),
             ds: DisjointSet::with_len(n),
             components: n,
-            cut_weight: g
-                .edges()
-                .fold(G::E::default(), |acc, e| acc + e.data().clone()),
         }
     }
 
@@ -84,7 +80,6 @@ where
     pub fn contract(&mut self, edge: &Edge<'a, G::NId, G::EId, G::E>) {
         if self.ds.join(self.ids[&edge.u()], self.ids[&edge.v()]) {
             self.components -= 1;
-            self.cut_weight = self.cut_weight.clone() - edge.data().clone();
         }
     }
 
@@ -94,14 +89,18 @@ where
         }
 
         let mut rng = rand::thread_rng();
-        let edges = self.cut_edges();
-        for edge in edges.choose_multiple(&mut rng, self.components - k) {
-            self.contract(edge);
+        let mut edges = self.cut_edges();
+        edges.shuffle(&mut rng);
+        while self.components > k && !edges.is_empty() {
+            let edge = edges.pop().unwrap();
+            self.contract(&edge);
         }
     }
 
     pub fn cut_weight(&self) -> G::E {
-        self.cut_weight.clone()
+        self.cut_edges()
+            .into_iter()
+            .fold(G::E::default(), |acc, e| acc + e.data().clone())
     }
 
     pub fn cut_edges(&self) -> Vec<Edge<'a, G::NId, G::EId, G::E>> {
@@ -123,7 +122,44 @@ where
             ids: self.ids.clone(),
             ds: self.ds.clone(),
             components: self.components,
-            cut_weight: self.cut_weight.clone(),
         }
     }
 }
+/*
+#[cfg(test)]
+mod tests {
+    use itertools::Itertools;
+
+    use crate::graph::builder::GraphBuilder;
+
+    use super::karger;
+
+    #[test]
+    fn karger_basic_case() {
+        let graph = GraphBuilder::<(), usize>::new()
+            .adj_flat()
+            .undirected()
+            .ordinal()
+            .with_size(5)
+            .edge(0, 1, 1)
+            .edge(1, 2, 1)
+            .edge(0, 3, 1)
+            .edge(0, 4, 1)
+            .edge(1, 4, 1)
+            .edge(3, 4, 1)
+            .edge(2, 4, 1)
+            .build();
+        let contraction = karger(&graph);
+        //assert_eq!(contraction.cut_weight(), 2);
+        println!("{}", contraction.cut_weight());
+        println!("{}", contraction.components);
+        assert_eq!(
+            contraction
+                .cut_edges()
+                .into_iter()
+                .map(|e| (e.u(), e.v()))
+                .collect_vec(),
+            vec![]
+        );
+    }
+}*/
